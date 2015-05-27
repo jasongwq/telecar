@@ -1,18 +1,3 @@
-/*
-软件版权所有：深圳市安信可科技有限公司		2013年11月27日发行
-
-中国最大最便宜的 的2.4G模块 生产原厂
-
-技术支持热线：4008 555 368  0755-61195776  15323435161  赵工
-
-批量报价：10K以下2RMB 50K以上1.8RMB
-
-特性：128个频道可调  空旷距离120-150米  低功耗   
-
-官网：http://www.ai-thiner.com
-
-厂址：深圳 宝安 西乡 固戍 恒南路 新园工业区六号四楼 安信可科技
-*/
 #ifndef _SPI_H
 #define _SPI_H
 
@@ -21,26 +6,21 @@
 #define WRITE		0x7F
 #define READ		0x80
 
-//sbit	TESTLED	= P3^7;
-
-//sbit	TXLED	= P1^7;
-//sbit	RXLED	= P1^6;
-
-
-sbit	SCLK	= P2^1;     		//output
 sbit	SS 		= P4^3;       		//output
-sbit	MISO 	= P2^2;       		//input
+sbit	SCLK	= P2^1;     		//output
 sbit	MOSI 	= P2^3;     		//output
-sbit	PKT 	= P0^0;  			//input
-sbit	RESET_N	= P0^1;  			//output
-/*
-sbit	RESET_N	= P1^5;  			//output
-sbit	SS 		= P1^4;       		//output
-sbit	MOSI 	= P1^3;     		//output
-sbit	SCLK	= P1^2;     		//output
-sbit	PKT 	= P1^1;  			//input
-sbit	MISO 	= P1^0;       		//input
-*/
+sbit	MISO 	= P2^2;       		//input
+sbit	RESET_N	= P0^7;  			//output
+sbit	PKT 	= P0^6;  			//input
+
+sbit	SS2 		= P0^0;       		//output
+sbit	SCLK2	  = P0^1;     		//output
+sbit	MOSI2 	= P0^2;     		//output
+sbit	MISO2 	= P0^3;       		//input
+sbit	RESET2_N= P0^4;  			//output
+sbit	PKT2 	  = P0^5;  			//input
+
+
 void InitLT8900(void);
 void spiWriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL);
 void spiReadreg(unsigned char reg);

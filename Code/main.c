@@ -11,12 +11,13 @@
 #define NO_CHANGE   255
 
 #define BAUD            (65536 - MCU_FREQ / 4 / 115200)
+
 void UartInit(void)
 {
     SCON = 0x5a;        //8位数据,可变波特率
     AUXR |= 0x01;       //串口1选择定时器2为波特率发生器
     AUXR |= 0x04;       //定时器2时钟为Fosc,即1T
-    T2L = BAUD;     //设定定时初值
+    T2L = BAUD;         //设定定时初值
     T2H = BAUD >> 8;    //设定定时初值
     AUXR |= 0x10;       //启动定时器2
 }
@@ -77,6 +78,8 @@ void tm0_isr() interrupt 1 using 1
     EA = 1;
 }
 unsigned char RegH, RegL;
+unsigned char Reg2H, Reg2L;
+
 unsigned char spiReadWrite(unsigned char Byte)
 {
     unsigned char i;
@@ -90,6 +93,25 @@ unsigned char spiReadWrite(unsigned char Byte)
         Byte <<= 1;
         Byte |= MISO;
         SCLK = 0;
+        Delay10us();
+    }
+    EA = 1;
+
+    return (Byte);
+}
+unsigned char spi2ReadWrite(unsigned char Byte)
+{
+    unsigned char i;
+
+    EA = 0;
+    for (i = 0; i < 8; i++)
+    {
+        MOSI2 = (Byte & 0x80);
+        SCLK2 = 1;
+        Delay10us();
+        Byte <<= 1;
+        Byte |= MISO2;
+        SCLK2 = 0;
         Delay10us();
     }
     EA = 1;
@@ -111,6 +133,22 @@ void spiWriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL)
     spiReadWrite(byteH);
     spiReadWrite(byteL);
     SS = 1;
+}
+//void spi2Readreg(unsigned char reg)
+//{
+//    SS2 = 0;
+//    spi2ReadWrite(READ | reg);
+//    Reg2H = spi2ReadWrite(0x00);
+//    Reg2L = spi2ReadWrite(0x00);
+//    SS2 = 1;
+//}
+void spi2WriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL)
+{
+    SS2 = 0;
+    spi2ReadWrite(WRITE & reg);
+    spi2ReadWrite(byteH);
+    spi2ReadWrite(byteL);
+    SS2 = 1;
 }
 void InitLT8900(void)
 {
@@ -160,39 +198,54 @@ void InitLT8900(void)
     delayMs(2);
     spiWriteReg(7, 0x00, 0x30);
 }
-#if 0
-//void main(void)
-//{
-//    P1 = 0xFF;
-//    P1M1 = 0x0A;
-//    P1M0 = 0xF5;
-//    /*
-//        P1M1 = 0x03;
-//        P1M0 = 0xFC;
-//    */
+void Init2LT8900(void)
+{
+    RESET2_N = 0;
+    delayMs(100);
+    RESET2_N = 1;
+    delayMs(200);
+    SCLK2 = 0;
 
-//    Timer1Init();
-//    InitLT8900();
+    spi2WriteReg(0, 0x6f, 0xe0);
+    spi2WriteReg(1, 0x56, 0x81);
+    spi2WriteReg(2, 0x66, 0x17);
+    spi2WriteReg(4, 0x9c, 0xc9);
+    spi2WriteReg(5, 0x66, 0x37);
+    spi2WriteReg(7, 0x00, 0x00);
+    spi2WriteReg(8, 0x6c, 0x90);
+    spi2WriteReg(9, 0x48, 0x00);             // 5.5dBm
+    spi2WriteReg(10, 0x7f, 0xfd);
+    spi2WriteReg(11, 0x00, 0x08);
+    spi2WriteReg(12, 0x00, 0x00);
+    spi2WriteReg(13, 0x48, 0xbd);
 
-//    smState = STANDBY;
+    spi2WriteReg(22, 0x00, 0xff);
+    spi2WriteReg(23, 0x80, 0x05);
+    spi2WriteReg(24, 0x00, 0x67);
+    spi2WriteReg(25, 0x16, 0x59);
+    spi2WriteReg(26, 0x19, 0xe0);
+    spi2WriteReg(27, 0x13, 0x00);
+    spi2WriteReg(28, 0x18, 0x00);
 
-//    while (1)
-//    {
-//        spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
-//        spiWriteReg(52, 0x80, 0x00);            // 清空发送缓存区
+    spi2WriteReg(32, 0x50, 0x00);
+    spi2WriteReg(33, 0x3f, 0xc7);
+    spi2WriteReg(34, 0x20, 0x00);
+    spi2WriteReg(35, 0x03, 0x00);
+    spi2WriteReg(36, 0x03, 0x80);
+    spi2WriteReg(37, 0x03, 0x80);
+    spi2WriteReg(38, 0x5a, 0x5a);
+    spi2WriteReg(39, 0x03, 0x80);
+    spi2WriteReg(40, 0x44, 0x01);
+    spi2WriteReg(41, 0xB0, 0x00);  //crc on scramble off ,1st byte packet length ,auto ack off
+    spi2WriteReg(42, 0xfd, 0xb0);  //
+    spi2WriteReg(43, 0x00, 0x0f);
+    spi2WriteReg(50, 0x00, 0x00);
+    delayMs(200);
 
-//        // 发送5个字节
-//        spiWriteReg(50, 5, 0x55);
-//        spiWriteReg(50, 2, 3);
-//        spiWriteReg(50, 4, 5);
-
-//        spiWriteReg(7, 0x01, 0x30);             // 允许发射使能
-
-//        while (PKT == 0);
-//        delayMs(300);
-//    }
-//}
-#else
+    spi2WriteReg(7, 0x01, 0x00);
+    delayMs(2);
+    spi2WriteReg(7, 0x00, 0x30);
+}
 void main(void)
 {
 
@@ -200,93 +253,54 @@ void main(void)
     SendUart(0x11);
     Timer0Init();
     InitLT8900();
+    Init2LT8900();
     spiWriteReg(7, 0x00, 0x30);
     delayMs(3);
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
     delayMs(5);
-	
-spiReadreg(0);SendUart(RegL);SendUart(RegH);
-spiReadreg(1 );SendUart(RegL);SendUart(RegH);
-spiReadreg(2 );SendUart(RegL);SendUart(RegH);
-spiReadreg(4 );SendUart(RegL);SendUart(RegH);
-spiReadreg(5 );SendUart(RegL);SendUart(RegH);
-spiReadreg(7 );SendUart(RegL);SendUart(RegH);
-spiReadreg(8 );SendUart(RegL);SendUart(RegH);
-spiReadreg(9 );SendUart(RegL);SendUart(RegH);
-spiReadreg(10);SendUart(RegL);SendUart(RegH);
-spiReadreg(11);SendUart(RegL);SendUart(RegH);
-spiReadreg(12);SendUart(RegL);SendUart(RegH);
-spiReadreg(13);SendUart(RegL);SendUart(RegH);
-spiReadreg(22);SendUart(RegL);SendUart(RegH);
-spiReadreg(23);SendUart(RegL);SendUart(RegH);
-spiReadreg(24);SendUart(RegL);SendUart(RegH);
-spiReadreg(25);SendUart(RegL);SendUart(RegH);
-spiReadreg(26);SendUart(RegL);SendUart(RegH);
-spiReadreg(27);SendUart(RegL);SendUart(RegH);
-spiReadreg(28);SendUart(RegL);SendUart(RegH);
-spiReadreg(32);SendUart(RegL);SendUart(RegH);
-spiReadreg(33);SendUart(RegL);SendUart(RegH);
-spiReadreg(34);SendUart(RegL);SendUart(RegH);
-spiReadreg(35);SendUart(RegL);SendUart(RegH);
-spiReadreg(36);SendUart(RegL);SendUart(RegH);
-spiReadreg(37);SendUart(RegL);SendUart(RegH);
-spiReadreg(38);SendUart(RegL);SendUart(RegH);
-spiReadreg(39);SendUart(RegL);SendUart(RegH);
-spiReadreg(40);SendUart(RegL);SendUart(RegH);
-spiReadreg(41);SendUart(RegL);SendUart(RegH);
-spiReadreg(42);SendUart(RegL);SendUart(RegH);
-spiReadreg(43);SendUart(RegL);SendUart(RegH);
-spiReadreg(50);SendUart(RegL);SendUart(RegH);
+
+    smState = SENDDATA;
     while (1)
     {
-        //        if (0 == PKT)
-        //        {
-        //            smState = STANDBY;
-        //            spiReadreg(50);
-        //            SendUart(RegL);
-        //            SendUart(RegH);
-        //            spiReadreg(50);
-        //            SendUart(RegL);
-        //            SendUart(RegH);
-        //            spiReadreg(50);
-        //            SendUart(RegL);
-        //            SendUart(RegH);
-        //            spiWriteReg(7, 0x00, 0x30);
-        //            delayMs(3);
-        //            spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-        //            spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
-        //            delayMs(5);
-        //        }
-        //                      spiReadreg(50);
-        //            SendUart(RegL);
-        //            SendUart(RegH);
+        if (smState == SENDDATA)
+        {
+            spi2WriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
+            spi2WriteReg(52, 0x80, 0x00);            // 清空发送缓存区
+
+            // 发送5个字节
+            spi2WriteReg(50, 5, 0x55);
+            spi2WriteReg(50, 2, 3);
+            spi2WriteReg(50, 4, 5);
+
+            spi2WriteReg(7, 0x01, 0x30);             // 允许发射使能
+
+            while (PKT2 == 0);
+            delayMs(300);
+            smState = RECEIVE;
+            SendUart(6);
+        }
+        else if (smState == RECEIVE)
+        {
+            if (1 == PKT)
+            {
+                //smState = STANDBY;
+                spiReadreg(50);
+                SendUart(RegL);
+                SendUart(RegH);
+                spiReadreg(50);
+                SendUart(RegL);
+                SendUart(RegH);
+                spiReadreg(50);
+                SendUart(RegL);
+                SendUart(RegH);
+                delayMs(200);
+                spiWriteReg(7, 0x00, 0x30);
+                delayMs(3);
+                spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
+                spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+                delayMs(5);
+            }
+        }
     }
 }
-#endif
-//-----------------------------------------------------------------------------
-//unsigned char ScanKey(void)
-//{
-//    char a = 0;
-//    unsigned char nextState = NO_CHANGE;
-
-//    if (1 == a)
-//        nextState = SENDDATA;
-//    if (1 == a)
-//        nextState = TESTPA;
-//    if (1 == a)
-//        nextState = SENDDATA;
-//    if (1 == a)
-//        nextState = TESTPA;
-//    if (1 == a)
-//        nextState = SENDDATA;
-//    if (1 == a)
-//        nextState = TESTPA;
-//    if (1 == a)
-//        nextState = SENDDATA;
-//    if (1 == a)
-//        nextState = TESTPA;
-
-//    return (nextState);
-//}
-
