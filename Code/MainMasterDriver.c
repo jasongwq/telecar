@@ -134,14 +134,14 @@ void spiWriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL)
     spiReadWrite(byteL);
     SS = 1;
 }
-//void spi2Readreg(unsigned char reg)
-//{
-//    SS2 = 0;
-//    spi2ReadWrite(READ | reg);
-//    Reg2H = spi2ReadWrite(0x00);
-//    Reg2L = spi2ReadWrite(0x00);
-//    SS2 = 1;
-//}
+void spi2Readreg(unsigned char reg)
+{
+    SS2 = 0;
+    spi2ReadWrite(READ | reg);
+    Reg2H = spi2ReadWrite(0x00);
+    Reg2L = spi2ReadWrite(0x00);
+    SS2 = 1;
+}
 void spi2WriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL)
 {
     SS2 = 0;
@@ -198,54 +198,54 @@ void InitLT8900(void)
     delayMs(2);
     spiWriteReg(7, 0x00, 0x30);
 }
-void Init2LT8900(void)
-{
-    RESET2_N = 0;
-    delayMs(100);
-    RESET2_N = 1;
-    delayMs(200);
-    SCLK2 = 0;
+//void Init2LT8900(void)
+//{
+//    RESET2_N = 0;
+//    delayMs(100);
+//    RESET2_N = 1;
+//    delayMs(200);
+//    SCLK2 = 0;
 
-    spi2WriteReg(0, 0x6f, 0xe0);
-    spi2WriteReg(1, 0x56, 0x81);
-    spi2WriteReg(2, 0x66, 0x17);
-    spi2WriteReg(4, 0x9c, 0xc9);
-    spi2WriteReg(5, 0x66, 0x37);
-    spi2WriteReg(7, 0x00, 0x00);
-    spi2WriteReg(8, 0x6c, 0x90);
-    spi2WriteReg(9, 0x48, 0x00);             // 5.5dBm
-    spi2WriteReg(10, 0x7f, 0xfd);
-    spi2WriteReg(11, 0x00, 0x08);
-    spi2WriteReg(12, 0x00, 0x00);
-    spi2WriteReg(13, 0x48, 0xbd);
+//    spi2WriteReg(0, 0x6f, 0xe0);
+//    spi2WriteReg(1, 0x56, 0x81);
+//    spi2WriteReg(2, 0x66, 0x17);
+//    spi2WriteReg(4, 0x9c, 0xc9);
+//    spi2WriteReg(5, 0x66, 0x37);
+//    spi2WriteReg(7, 0x00, 0x00);
+//    spi2WriteReg(8, 0x6c, 0x90);
+//    spi2WriteReg(9, 0x48, 0x00);             // 5.5dBm
+//    spi2WriteReg(10, 0x7f, 0xfd);
+//    spi2WriteReg(11, 0x00, 0x08);
+//    spi2WriteReg(12, 0x00, 0x00);
+//    spi2WriteReg(13, 0x48, 0xbd);
 
-    spi2WriteReg(22, 0x00, 0xff);
-    spi2WriteReg(23, 0x80, 0x05);
-    spi2WriteReg(24, 0x00, 0x67);
-    spi2WriteReg(25, 0x16, 0x59);
-    spi2WriteReg(26, 0x19, 0xe0);
-    spi2WriteReg(27, 0x13, 0x00);
-    spi2WriteReg(28, 0x18, 0x00);
+//    spi2WriteReg(22, 0x00, 0xff);
+//    spi2WriteReg(23, 0x80, 0x05);
+//    spi2WriteReg(24, 0x00, 0x67);
+//    spi2WriteReg(25, 0x16, 0x59);
+//    spi2WriteReg(26, 0x19, 0xe0);
+//    spi2WriteReg(27, 0x13, 0x00);
+//    spi2WriteReg(28, 0x18, 0x00);
 
-    spi2WriteReg(32, 0x50, 0x00);
-    spi2WriteReg(33, 0x3f, 0xc7);
-    spi2WriteReg(34, 0x20, 0x00);
-    spi2WriteReg(35, 0x03, 0x00);
-    spi2WriteReg(36, 0x03, 0x80);
-    spi2WriteReg(37, 0x03, 0x80);
-    spi2WriteReg(38, 0x5a, 0x5a);
-    spi2WriteReg(39, 0x03, 0x80);
-    spi2WriteReg(40, 0x44, 0x01);
-    spi2WriteReg(41, 0xB0, 0x00);  //crc on scramble off ,1st byte packet length ,auto ack off
-    spi2WriteReg(42, 0xfd, 0xb0);  //
-    spi2WriteReg(43, 0x00, 0x0f);
-    spi2WriteReg(50, 0x00, 0x00);
-    delayMs(200);
+//    spi2WriteReg(32, 0x50, 0x00);
+//    spi2WriteReg(33, 0x3f, 0xc7);
+//    spi2WriteReg(34, 0x20, 0x00);
+//    spi2WriteReg(35, 0x03, 0x00);
+//    spi2WriteReg(36, 0x03, 0x80);
+//    spi2WriteReg(37, 0x03, 0x80);
+//    spi2WriteReg(38, 0x5a, 0x5a);
+//    spi2WriteReg(39, 0x03, 0x80);
+//    spi2WriteReg(40, 0x44, 0x01);
+//    spi2WriteReg(41, 0xB0, 0x00);  //crc on scramble off ,1st byte packet length ,auto ack off
+//    spi2WriteReg(42, 0xfd, 0xb0);  //
+//    spi2WriteReg(43, 0x00, 0x0f);
+//    spi2WriteReg(50, 0x00, 0x00);
+//    delayMs(200);
 
-    spi2WriteReg(7, 0x01, 0x00);
-    delayMs(2);
-    spi2WriteReg(7, 0x00, 0x30);
-}
+//    spi2WriteReg(7, 0x01, 0x00);
+//    delayMs(2);
+//    spi2WriteReg(7, 0x00, 0x30);
+//}
 void main(void)
 {
 
@@ -253,7 +253,7 @@ void main(void)
     SendUart(0x11);
     Timer0Init();
     InitLT8900();
-    Init2LT8900();
+//    Init2LT8900();
     spiWriteReg(7, 0x00, 0x30);
     delayMs(3);
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
@@ -275,16 +275,20 @@ void main(void)
 
             spi2WriteReg(7, 0x01, 0x30);             // 允许发射使能
 
-            while (PKT2 == 0);
+            do
+            {
+                spi2Readreg(48);
+            }
+            while (0 == (RegL >> 6 & 0x01));
             delayMs(300);
             smState = RECEIVE;
             SendUart(6);
         }
         else if (smState == RECEIVE)
         {
-            if (1 == PKT)
+            spiReadreg(48);
+            if (1 == (RegL >> 6 & 0x01))
             {
-                //smState = STANDBY;
                 spiReadreg(50);
                 SendUart(RegL);
                 SendUart(RegH);

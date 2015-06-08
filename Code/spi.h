@@ -6,11 +6,11 @@
 #define WRITE		0x7F
 #define READ		0x80
 
-sbit	SS 		= P4^3;       		//output
-sbit	SCLK	= P2^1;     		//output
-sbit	MOSI 	= P2^3;     		//output
-sbit	MISO 	= P2^2;       		//input
-sbit	RESET_N	= P0^7;  			//output
+sbit	SS 		= P1^2;       		//output
+sbit	SCLK	= P1^5;     		//output
+sbit	MOSI 	= P1^3;     		//output
+sbit	MISO 	= P1^4;       		//input
+sbit	RESET_N	= P1^6;  			//output
 sbit	PKT 	= P0^6;  			//input
 
 sbit	SS2 		= P0^0;       		//output
