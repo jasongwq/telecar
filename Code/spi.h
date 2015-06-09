@@ -12,7 +12,7 @@ sbit	SCLK	= P1^5;     		//output
 sbit	MOSI 	= P1^3;     		//output
 sbit	MISO 	= P1^4;       		//input
 sbit	RESET_N	= P1^6;  			//output
-sbit	PKT 	= P3^2;  			//input
+
 
 void InitLT8900(void);
 void spiWriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL);

@@ -7,10 +7,10 @@
 void tm0_isr() interrupt 1 using 1
 {
     EA = 0;
-  //  fTimer1ms = 1;
-	UpdateTimers();
+    //fTimer1ms = 1;
+    UpdateTimers();
     EA = 1;
-    
+
 }
 void spiReadreg(unsigned char reg)
 {
@@ -70,46 +70,45 @@ char TaskControl(void)
     }
     _EE
 }
+sbit    PKT     = P5 ^ 5;           //input
 char TaskRf(void)
 {
     _SS
-    RESET_N = 0;
+   	PKT=1; 
+	RESET_N = 0;
     WaitX(100);
     RESET_N = 1;
     WaitX(200);
     InitLT8900();
-    WaitX(200);
+    WaitX(200);	
     spiWriteReg(7, 0x01, 0x00);
-    WaitX(2);
+	  WaitX(2);
     spiWriteReg(7, 0x00, 0x30);
-    WaitX(3);
+	
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
     WaitX(5);
 #if 1==DEBUGLT8910
     debuglt8910();
 #endif
+
     while (1)
     {
-			  //WaitX(40);
-			//SendUart(RegL);
-//        spiReadreg(48);
-//        if (0x40 == (RegL & 0x40))
-//        {
-					if(1==PKT)
-					{
-            RegH = 0;
-            spiReadreg(50);
-            if (0x01 == RegH)
+        WaitX(2);
+        spiReadreg(48);
+        if (0x40 == (RegL& 0x40))
+        {
+            spiReadreg(48);
+            if (0x00 == (RegH & 0x80))
             {
-                SendUart(RegL);
-                spiWriteReg(7, 0x00, 0x30);
-                WaitX(6);
-                spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-//							  WaitX(3);
-                spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
-							WaitX(10);
+                spiReadreg(50);
+                if (0x01 == RegH)
+                {
+                    SendUart(RegL);
+                }
             }
+						spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
+            spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
         }
     }
     _EE
@@ -118,14 +117,13 @@ void main(void)
 {
     P_SW1 |= 0x80; //P_SW1 0x80 USART 在 RX P1.6 TX P1.7
     UartInit();
-
     SendUart(0x11);
     Timer0Init();
     for (;;)
     {
         RunTaskA(TaskRf, 0);
         RunTaskA(TaskControl, 1);
-			;;;;;
-			//SendUart(RegL);
+        ;;;;;
+        //SendUart(RegL);
     }
 }
