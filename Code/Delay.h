@@ -1,16 +1,16 @@
 #ifndef _DELAY_H
 #define _DELAY_H
 
-//bit fTimer1ms;
-//void delayMs(unsigned int timerCnt)
-//{
-//    do
-//    {
-//        fTimer1ms = 0;
-//        while (fTimer1ms == 0);
-//    }
-//    while (timerCnt--);
-//}
+bit fTimer1ms;
+void delayMs(unsigned int timerCnt)
+{
+    do
+    {
+        fTimer1ms = 0;
+        while (fTimer1ms == 0);
+    }
+    while (timerCnt--);
+}
 void Delay10us()        //@24.000MHz
 {
     unsigned char i;

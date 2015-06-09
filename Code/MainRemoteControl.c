@@ -19,7 +19,12 @@ sbit    LEDH    = P5 ^ 5;           //output
 sbit    LEDM    = P5 ^ 4;           //output
 sbit    LEDL    = P1 ^ 7;           //output
 
-
+void tm0_isr() interrupt 1 using 1
+{
+    EA = 0;
+    fTimer1ms = 1;
+    EA = 1;
+}
 char KeyScan(void)
 {
     if      (0 == KeyT)return 1;

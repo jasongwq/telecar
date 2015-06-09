@@ -72,7 +72,10 @@ void debuglt8910(void)
 #endif
 void InitLT8900(void)
 {
-
+    RESET_N = 0;
+    delayMs(100);
+    RESET_N = 1;
+    delayMs(200);
     SCLK = 0;
 
     spiWriteReg(0, 0x6f, 0xe0);
@@ -112,6 +115,12 @@ void InitLT8900(void)
     spiWriteReg(45, 0x01, 0x52);
 
     spiWriteReg(50, 0x00, 0x00);
+	delayMs(200);
+	
+    spiWriteReg(7, 0x01, 0x00);
+	delayMs(2);
+    spiWriteReg(7, 0x00, 0x30);
+
 }
 
 #endif

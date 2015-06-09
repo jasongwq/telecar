@@ -7,10 +7,9 @@
 void tm0_isr() interrupt 1 using 1
 {
     EA = 0;
-    //fTimer1ms = 1;
+    fTimer1ms = 1;
     UpdateTimers();
     EA = 1;
-
 }
 void spiReadreg(unsigned char reg)
 {
@@ -26,12 +25,12 @@ sbit    OutL    = P3 ^ 3;           //output
 sbit    OutF    = P3 ^ 5;           //output
 sbit    OutB    = P3 ^ 6;           //input
 sbit    PWM     = P1 ^ 1;           //input
-
+char Speed=0;
 char ControlCommand = -1;
-#define Left              0
-#define Right             1
-#define Stop              2
-#define Skid              3
+#define Left              3
+#define Right             2
+#define Stop             0// 2
+#define Skid             12// 3
 #define RemoteControlRunH 4
 #define RemoteControlRunM 5
 #define RemoteControlRunL 6
@@ -70,28 +69,18 @@ char TaskControl(void)
     }
     _EE
 }
-sbit    PKT     = P5 ^ 5;           //input
 char TaskRf(void)
 {
     _SS
-   	PKT=1; 
-	RESET_N = 0;
-    WaitX(100);
-    RESET_N = 1;
-    WaitX(200);
+//   	PKT=1; 
+
     InitLT8900();
-    WaitX(200);	
-    spiWriteReg(7, 0x01, 0x00);
-	  WaitX(2);
-    spiWriteReg(7, 0x00, 0x30);
-	
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
-    WaitX(5);
+    delayMs(5);
 #if 1==DEBUGLT8910
     debuglt8910();
 #endif
-
     while (1)
     {
         WaitX(2);
@@ -123,7 +112,5 @@ void main(void)
     {
         RunTaskA(TaskRf, 0);
         RunTaskA(TaskControl, 1);
-        ;;;;;
-        //SendUart(RegL);
     }
 }
