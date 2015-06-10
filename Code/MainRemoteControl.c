@@ -93,6 +93,7 @@ void main(void)
     {
         static int sendcnt = 0;
         Key = KeyScan();
+				if(Key&0xf0==0x30)Key=Key&0xdf;
         if (t1 == 1)
         {
 					if(0 != Key)

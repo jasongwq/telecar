@@ -89,6 +89,7 @@ char TaskControl(void)
             ControlCommand = -1;
             OutB = 0; OutF = 1;
             PWMOUT(2000, 96); //PwmOut(2, 32 * 3);
+					SendUart(ControlCommand);
         }
         else if (ControlCommand == RemoteControlRunH)
         {
@@ -100,7 +101,7 @@ char TaskControl(void)
             for (i = 0; i < 3000; i++)
             {
                 tmp = (u32)(255) * i / 3000 + lastpwm0; if (tmp > 255)break; else pwm0 = tmp;
-                CCAP0H = 0xff - pwm0; SendUart(tmp >> 8); SendUart(tmp); WaitX(1);
+                CCAP0H = 0xff - pwm0; SendUart(tmp >> 8); WaitX(1);
             } pwm0 = 255; CCAP0H = 0xff - pwm0; //PwmOut(3, 255);
         }
         else if (ControlCommand == RemoteControlBack)
@@ -193,7 +194,9 @@ int TaskRf(void)
                 if (0x01 == RegH)
                 {
                     if (RegL < 0x28)ControlCommand = RegL;
-                    if (RegL & 0x0f == 0x07 || RegL & 0x0f == 0x05){Speed = RegL >> 4;if(Speed==3)Speed=1;}
+                    if (RegL & 0x0f == 0x07 || RegL & 0x0f == 0x05){Speed = RegL >> 4;}
+										SendUart(ControlCommand);
+										
                 }
             }
             spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
