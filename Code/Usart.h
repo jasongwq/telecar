@@ -1,6 +1,6 @@
 #ifndef _USART_H
 #define _USART_H
-#define MCU_FREQ                             24000000 // 设置晶振频率
+
 
 #define BAUD            (65536 - MCU_FREQ / 4 / 115200)
 

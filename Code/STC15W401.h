@@ -7,7 +7,52 @@
 //相关IO: P0.6/P0.7/P1.6/P1.7/P2.1/P2.2
 //        P2.3/P2.7/P3.7/P4.2/P4.4/P4.5
 /////////////////////////////////////////////////
+typedef 	unsigned char	u8;
+typedef 	unsigned int	u16;
+typedef 	unsigned long	u32;
+#define MCU_FREQ                             24000000 // 设置晶振频率
 
+/*   interrupt vector */
+#define		INT0_VECTOR		0
+#define		TIMER0_VECTOR	1
+#define		INT1_VECTOR		2
+#define		TIMER1_VECTOR	3
+#define		UART1_VECTOR	4
+#define		ADC_VECTOR		5
+#define		LVD_VECTOR		6
+#define		PCA_VECTOR		7
+#define		UART2_VECTOR	8
+#define		SPI_VECTOR		9
+#define		INT2_VECTOR		10
+#define		INT3_VECTOR		11
+#define		TIMER2_VECTOR	12
+#define		INT4_VECTOR		16
+#define		UART3_VECTOR	17
+#define		UART4_VECTOR	18
+#define		TIMER3_VECTOR	19
+#define		TIMER4_VECTOR	20
+#define		CMP_VECTOR		21
+
+
+#define	TRUE	1
+#define	FALSE	0
+
+//=============================================================
+
+//========================================
+
+#define	PolityLow			0	//低优先级中断
+#define	PolityHigh			1	//高优先级中断
+
+//========================================
+
+#define		MCLKO_None	0
+#define		MCLKO_DIV1	1
+#define		MCLKO_DIV2	2
+#define		MCLKO_DIV4	3
+
+#define		ENABLE		1
+#define		DISABLE		0
 /////////////////////////////////////////////////
 
 //包含本头文件后,不用另外再包含"REG51.H"

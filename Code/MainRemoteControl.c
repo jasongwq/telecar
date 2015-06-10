@@ -1,3 +1,4 @@
+#include "STC15W401.h"
 #include "spi.h"
 #include <intrins.h>
 #include "delay.h"
@@ -115,9 +116,10 @@ void main(void)
 						Realse=0;
 						if((LastKey&0x0f)==5){
 							switch(++Speed){
-							case 3:Speed=0;LEDL=0;LEDM=1;LEDH=1;break;
+							case 4:Speed=0;LEDL=0;LEDM=1;LEDH=1;break;
 							case 1:LEDL=1;LEDM=0;LEDH=1;break;
 							case 2:LEDL=1;LEDM=1;LEDH=0;break;
+							case 3:LEDL=1;LEDM=0;LEDH=1;break;
 							default:Speed=0;break;
 						}}
 					  spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz

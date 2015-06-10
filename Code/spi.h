@@ -1,8 +1,6 @@
 #ifndef _SPI_H
 #define _SPI_H
 
-#include "STC15W401.h"
-
 
 #define WRITE		0x7F
 #define READ		0x80
