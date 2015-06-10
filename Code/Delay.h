@@ -32,8 +32,7 @@ void Timer0Init(void)       //1毫秒@24.000MHz
     ET0 = 1;                        //使能定时器0中断
     EA = 1;
 }
-volatile int t = 0;
-bit t1 = 0;
+
 
 
 

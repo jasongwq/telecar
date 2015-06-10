@@ -19,22 +19,23 @@ void spiReadreg(unsigned char reg)
     RegL = spiReadWrite(0x00);
     SS = 1;
 }
-
+int a;
 sbit    OutR    = P3 ^ 1;           //output
 sbit    OutL    = P3 ^ 3;           //output
 sbit    OutF    = P3 ^ 5;           //output
 sbit    OutB    = P3 ^ 6;           //input
 sbit    PWM     = P1 ^ 1;           //input
-char Speed=0;
+sbit 		
+char Speed = 0;
 char ControlCommand = -1;
 #define Left              3
 #define Right             2
-#define Stop             0// 2
-#define Skid             12// 3
-#define RemoteControlRunH 4
-#define RemoteControlRunM 5
-#define RemoteControlRunL 6
-#define RemoteControlBack 7
+#define Stop              4
+#define Skid              1
+#define RemoteControlRunH 0x27
+#define RemoteControlRunM 0x17
+#define RemoteControlRunL 7
+#define RemoteControlBack 6
 #define ManualControlRunH 8
 #define ManualControlRunM 9
 #define ManualControlRunL 10
@@ -48,44 +49,121 @@ void PwmOut(char time, char highttime)
 char TaskControl(void)
 {
     _SS
+		P3M0=0x6A;
     while (1)
     {
-        WaitX(20);
-        switch (ControlCommand)
+        WaitX(1);
+			if()
+        if (ControlCommand == Left)
         {
-        case Left             : OutL = 1; WaitX(2); OutL = 0;  break;
-        case Right            : OutR = 1; WaitX(2); OutR = 0; break;
-        case Stop             : PwmOut(0, 82); WaitX(2); OutF = 0; break;
-        case Skid             : PwmOut(0, 82); OutF = 0; break;
-        case ManualControlRunL:
-        case RemoteControlRunL: OutB = 0; OutF = 1; PwmOut(1, 22); break;
-        case RemoteControlRunM: OutB = 0; OutF = 1; PwmOut(2, 32); break;
-        case RemoteControlRunH: OutB = 0; OutF = 1; PwmOut(3, 82); break;
-        case RemoteControlBack: OutF = 0; OutB = 1; PwmOut(2, 26); break;
-        case ManualControlRunM: OutB = 0; OutF = 1; PwmOut(3, 32); break;
-        case ManualControlRunH: OutB = 0; OutF = 1; PwmOut(5, 82); break;
-        case ManualControlBack: OutF = 0; OutB = 1; PwmOut(3, 26); break;
+            OutL = 1;
+            WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+            OutL = 0;
+					SendUart(ControlCommand);
         }
+        else if (ControlCommand == Right)
+        {
+            OutR = 1;
+            WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+            OutR = 0;
+            SendUart(ControlCommand);
+        }
+        else if (ControlCommand == Stop)
+        {
+            PwmOut(0, 82);
+            WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+					  WaitX(200);
+            OutF = 0;
+        }
+        else if (ControlCommand == Skid)
+        {
+            PwmOut(0, 82);
+            OutF = 0;
+        }
+        else if ((ControlCommand == ManualControlRunL) || (ControlCommand == RemoteControlRunL))
+        {
+            OutB = 0;
+            OutF = 1;
+            PwmOut(1, 22);
+        }
+        else if (ControlCommand == RemoteControlRunM)
+        {
+            OutB = 0;
+            OutF = 1;
+            PwmOut(2, 32);
+        }
+        else if (ControlCommand == RemoteControlRunH)
+        {
+            OutB = 0;
+            OutF = 1;
+            PwmOut(3, 82);
+        }
+        else if (ControlCommand == RemoteControlBack)
+        {
+            OutF = 0;
+            OutB = 1;
+            PwmOut(2, 26);
+        }
+        else if (ControlCommand == ManualControlRunM)
+        {
+            OutB = 0;
+            OutF = 1;
+            PwmOut(3, 32);
+        }
+        else if (ControlCommand == ManualControlRunH)
+        {
+            OutB = 0;
+            OutF = 1;
+            PwmOut(5, 82);
+        }
+        else if (ControlCommand == ManualControlBack)
+        {
+            OutF = 0;
+            OutB = 1;
+            PwmOut(3, 26);
+        }
+        ControlCommand = -1;
     }
     _EE
 }
 char TaskRf(void)
 {
     _SS
-//   	PKT=1; 
-
     InitLT8900();
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
     delayMs(5);
-#if 1==DEBUGLT8910
-    debuglt8910();
-#endif
     while (1)
     {
         WaitX(2);
         spiReadreg(48);
-        if (0x40 == (RegL& 0x40))
+        if (0x40 == (RegL & 0x40))
         {
             spiReadreg(48);
             if (0x00 == (RegH & 0x80))
@@ -93,10 +171,10 @@ char TaskRf(void)
                 spiReadreg(50);
                 if (0x01 == RegH)
                 {
-                    SendUart(RegL);
+                    if (RegL < 0x28)ControlCommand = RegL;
                 }
             }
-						spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
+            spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
             spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
         }
     }

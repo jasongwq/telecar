@@ -1,7 +1,7 @@
 #ifndef _LT8910_H
 #define _LT8910_H
 
-#define DEBUGLT8910 0
+
 unsigned char RegH, RegL;
 unsigned char Reg2H, Reg2L;
 
@@ -33,43 +33,7 @@ void spiWriteReg(unsigned char reg, unsigned char byteH, unsigned char byteL)
     spiReadWrite(byteL);
     SS = 1;
 }
-#if 1==DEBUGLT8910
-void debuglt8910(void)
-{
-    spiReadreg(0); SendUart(RegL); SendUart(RegH);
-    spiReadreg(1 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(2 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(4 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(5 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(7 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(8 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(9 ); SendUart(RegL); SendUart(RegH);
-    spiReadreg(10); SendUart(RegL); SendUart(RegH);
-    spiReadreg(11); SendUart(RegL); SendUart(RegH);
-    spiReadreg(12); SendUart(RegL); SendUart(RegH);
-    spiReadreg(13); SendUart(RegL); SendUart(RegH);
-    spiReadreg(22); SendUart(RegL); SendUart(RegH);
-    spiReadreg(23); SendUart(RegL); SendUart(RegH);
-    spiReadreg(24); SendUart(RegL); SendUart(RegH);
-    spiReadreg(25); SendUart(RegL); SendUart(RegH);
-    spiReadreg(26); SendUart(RegL); SendUart(RegH);
-    spiReadreg(27); SendUart(RegL); SendUart(RegH);
-    spiReadreg(28); SendUart(RegL); SendUart(RegH);
-    spiReadreg(32); SendUart(RegL); SendUart(RegH);
-    spiReadreg(33); SendUart(RegL); SendUart(RegH);
-    spiReadreg(34); SendUart(RegL); SendUart(RegH);
-    spiReadreg(35); SendUart(RegL); SendUart(RegH);
-    spiReadreg(36); SendUart(RegL); SendUart(RegH);
-    spiReadreg(37); SendUart(RegL); SendUart(RegH);
-    spiReadreg(38); SendUart(RegL); SendUart(RegH);
-    spiReadreg(39); SendUart(RegL); SendUart(RegH);
-    spiReadreg(40); SendUart(RegL); SendUart(RegH);
-    spiReadreg(41); SendUart(RegL); SendUart(RegH);
-    spiReadreg(42); SendUart(RegL); SendUart(RegH);
-    spiReadreg(43); SendUart(RegL); SendUart(RegH);
-    spiReadreg(50); SendUart(RegL); SendUart(RegH);    
-}
-#endif
+
 void InitLT8900(void)
 {
     RESET_N = 0;
@@ -77,7 +41,6 @@ void InitLT8900(void)
     RESET_N = 1;
     delayMs(200);
     SCLK = 0;
-
     spiWriteReg(0, 0x6f, 0xe0);
     spiWriteReg(1, 0x56, 0x81);
     spiWriteReg(2, 0x66, 0x17);
@@ -115,12 +78,11 @@ void InitLT8900(void)
     spiWriteReg(45, 0x01, 0x52);
 
     spiWriteReg(50, 0x00, 0x00);
-	delayMs(200);
-	
-    spiWriteReg(7, 0x01, 0x00);
-	delayMs(2);
-    spiWriteReg(7, 0x00, 0x30);
+    delayMs(200);
 
+    spiWriteReg(7, 0x01, 0x00);
+    delayMs(2);
+    spiWriteReg(7, 0x00, 0x30);
 }
 
 #endif
