@@ -159,11 +159,6 @@ void main(void)
     LEDM    = 1;
     LEDF    = 1;
 
-    //    spiWriteReg(7, 0x00, 0x30);
-    //    delayMs(3);
-    //    spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-    //    spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
-    //    delayMs(5);
 #if 1==DEBUGLT8910
     debuglt8910();
 #endif
