@@ -41,10 +41,11 @@ void spiReadreg(unsigned char reg)
     RegL = spiReadWrite(0x00);
     SS = 1;
 }
-u8 tmp[66];
+//u8 EepromTmp[66];
 void InitLT8900(void)
-{char i;
-    EEPROM_read_n(0x0200, tmp, 5);
+{
+	//char i;
+//    EEPROM_read_n(0x0200, tmp, 5);
     RESET_N = 0;
     delayMs(100);
     RESET_N = 1;

@@ -59,8 +59,8 @@ sbit    LEDL    = P1 ^ 7;           //output
 void LED(u8 Stata)
 {
     LEDH = (Stata >> 6);
-    LEDM = (Stata >> 5);
-    LEDL = (Stata >> 4);
+    LEDM = (Stata >> 5)&0x01;
+    LEDL = (Stata >> 4)&0x01;
 }
 char KeyScan(void)
 {

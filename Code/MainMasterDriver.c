@@ -191,7 +191,7 @@ int TaskRf(void)
                     if ((RegL & 0x0f) == 0x07 || (RegL & 0x0f) == 0x05)
                     {
                         Speed = RegL >> 4;
-                    if(RegL & 0x0f) == 0x05)
+                    if((RegL & 0x0f) == 0x05)
 										{
 											ControlCommand=((RegL&0xf0)|0x07);
 										}
@@ -225,9 +225,8 @@ void main(void)
     INMB = 1;
     for (;;)
     {
-        //RunTaskA(TaskControl2, 0);
+        RunTaskA(TaskControl2, 0);
         RunTaskA(TaskRf, 2);
-        //RunTaskA(TaskControl, 1);
-
+        RunTaskA(TaskControl, 1);
     }
 }
