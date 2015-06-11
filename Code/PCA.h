@@ -15,7 +15,7 @@
 #ifndef	__PCA_H
 #define	__PCA_H
 #include "STC15W401.h"
-#define MAIN_Fosc		24000000L	//定义主时钟
+//#define MAIN_Fosc		24000000L	//定义主时钟
 
 #define	PCA0			0
 #define	PCA1			1

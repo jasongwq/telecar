@@ -1,6 +1,6 @@
 #ifndef __STC15F2K60S2_H_
 #define __STC15F2K60S2_H_
-
+#include <intrins.h>
 /////////////////////////////////////////////////
 //注意: STC15W4K32S4系列的芯片,上电后所有与PWM相关的IO口均为
 //      高阻态,需将这些口设置为准双向口或强推挽模式方可正常使用
@@ -11,6 +11,8 @@ typedef 	unsigned char	u8;
 typedef 	unsigned int	u16;
 typedef 	unsigned long	u32;
 #define MCU_FREQ                             24000000 // 设置晶振频率
+#define MAIN_Fosc		22118400L	//定义主时钟
+
 
 /*   interrupt vector */
 #define		INT0_VECTOR		0
@@ -54,6 +56,55 @@ typedef 	unsigned long	u32;
 #define		ENABLE		1
 #define		DISABLE		0
 /////////////////////////////////////////////////
+sfr ISP_DATA  = 0xC2;
+sfr ISP_ADDRH = 0xC3;
+sfr ISP_ADDRL = 0xC4;
+sfr ISP_CMD   = 0xC5;
+sfr ISP_TRIG  = 0xC6;
+sfr ISP_CONTR = 0xC7;
+
+//sfr ISP_CMD   = 0xC5;
+#define		ISP_STANDBY()	ISP_CMD = 0		//ISP空闲命令（禁止）
+#define		ISP_READ()		ISP_CMD = 1		//ISP读出命令
+#define		ISP_WRITE()		ISP_CMD = 2		//ISP写入命令
+#define		ISP_ERASE()		ISP_CMD = 3		//ISP擦除命令
+
+//sfr ISP_TRIG  = 0xC6;
+#define 	ISP_TRIG()	ISP_TRIG = 0x5A,	ISP_TRIG = 0xA5		//ISP触发命令
+
+//							  7    6    5      4    3    2    1     0    Reset Value
+//sfr IAP_CONTR = 0xC7;		IAPEN SWBS SWRST CFAIL  -   WT2  WT1   WT0   0000,x000	//IAP Control Register
+#define ISP_EN			(1<<7)
+#define ISP_SWBS		(1<<6)
+#define ISP_SWRST		(1<<5)
+#define ISP_CMD_FAIL	(1<<4)
+#define ISP_WAIT_1MHZ	7
+#define ISP_WAIT_2MHZ	6
+#define ISP_WAIT_3MHZ	5
+#define ISP_WAIT_6MHZ	4
+#define ISP_WAIT_12MHZ	3
+#define ISP_WAIT_20MHZ	2
+#define ISP_WAIT_24MHZ	1
+#define ISP_WAIT_30MHZ	0
+
+#if (MAIN_Fosc >= 24000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_30MHZ
+#elif (MAIN_Fosc >= 20000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_24MHZ
+#elif (MAIN_Fosc >= 12000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_20MHZ
+#elif (MAIN_Fosc >= 6000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_12MHZ
+#elif (MAIN_Fosc >= 3000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_6MHZ
+#elif (MAIN_Fosc >= 2000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_3MHZ
+#elif (MAIN_Fosc >= 1000000L)
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_2MHZ
+#else
+	#define		ISP_WAIT_FREQUENCY	ISP_WAIT_1MHZ
+#endif
+
 
 //包含本头文件后,不用另外再包含"REG51.H"
 
