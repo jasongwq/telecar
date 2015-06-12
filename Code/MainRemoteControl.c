@@ -29,7 +29,18 @@ void tm0_isr() interrupt 1 using 1
 #endif
 #define DEBUGLT8910 0
 #include "lt8910.h"
-
+void InitLT8900(void)
+{
+    u8 EepromTmp[3 * 34];
+    char i;
+    EEPROM_read_n(0x0200, EepromTmp, 3 * 34);
+    RESET_N = 0;
+    delayMs(100);
+    RESET_N = 1;
+    delayMs(200);
+    SCLK = 0;
+    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34+1]);
+}
 sbit    KeyT    = P3 ^ 0;           //output
 sbit    KeyR    = P3 ^ 1;           //output
 sbit    KeyL    = P3 ^ 2;           //output
@@ -59,8 +70,8 @@ sbit    LEDL    = P1 ^ 7;           //output
 void LED(u8 Stata)
 {
     LEDH = (Stata >> 6);
-    LEDM = (Stata >> 5)&0x01;
-    LEDL = (Stata >> 4)&0x01;
+    LEDM = (Stata >> 5) & 0x01;
+    LEDL = (Stata >> 4) & 0x01;
 }
 char KeyScan(void)
 {
@@ -143,7 +154,6 @@ void main(void)
 #endif
     Timer0Init();
     InitLT8900();
-    //spiWriteReg(36, 0x09, 0x00);
     EEPROM_read_n(0x0000, AddressFrequency, 5);
     SetLT9010Address();
     KeyT    = 1;

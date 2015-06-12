@@ -7,7 +7,51 @@
 #include "sys_os.h"
 #include "pca.h"
 
-volatile unsigned char  lastpwm0, pwm0 = 0xff-36;
+void InitLT8900(void)
+{
+    RESET_N = 0;
+    delayMs(100);
+    RESET_N = 1;
+    delayMs(200);
+    SCLK = 0;
+    spiWriteReg(0, 0x6f, 0xe0);
+    spiWriteReg(1, 0x56, 0x81);
+    spiWriteReg(2, 0x66, 0x17);
+    spiWriteReg(4, 0x9c, 0xc9);
+    spiWriteReg(5, 0x66, 0x37);
+    spiWriteReg(7, 0x00, 0x00);
+    spiWriteReg(8, 0x6c, 0x90);
+    spiWriteReg(9, 0x48, 0x00);             // 5.5dBm
+    spiWriteReg(10, 0x7f, 0xfd);
+    spiWriteReg(11, 0x00, 0x08);
+    spiWriteReg(12, 0x00, 0x00);
+    spiWriteReg(13, 0x48, 0xbd);//14
+    spiWriteReg(22, 0x00, 0xff);
+    spiWriteReg(23, 0x80, 0x05);
+    spiWriteReg(24, 0x00, 0x67);
+    spiWriteReg(25, 0x16, 0x59);
+    spiWriteReg(26, 0x19, 0xe0);
+    spiWriteReg(27, 0x13, 0x00);
+    spiWriteReg(28, 0x18, 0x00);//7
+    spiWriteReg(32, 0x50, 0x00);
+    spiWriteReg(33, 0x3f, 0xc7);
+    spiWriteReg(34, 0x20, 0x00);
+    spiWriteReg(35, 0x03, 0x00);
+    spiWriteReg(36, 0x03, 0x80);
+    spiWriteReg(37, 0x03, 0x80);
+    spiWriteReg(38, 0x5a, 0x5a);
+    spiWriteReg(39, 0x03, 0x80);
+    spiWriteReg(40, 0x44, 0x02);
+    spiWriteReg(41, 0xB0, 0x00);  //crc on scramble off ,1st byte packet length ,auto ack off
+    spiWriteReg(42, 0xfd, 0xb0);  //
+    spiWriteReg(43, 0x00, 0x0f);
+    spiWriteReg(44, 0x01, 0x00);
+    spiWriteReg(45, 0x01, 0x52);//14
+
+    spiWriteReg(50, 0x00, 0x00);
+}
+
+volatile unsigned char  lastpwm0, pwm0 = 0xff - 36;
 u16 i;
 u32 tmp;
 int TimeCount = 0;
@@ -157,7 +201,7 @@ int TaskRf(void)
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
     delayMs(5);
-	for (i = 0; i<10;i++)
+    for (i = 0; i < 10; i++)
     {
         spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
         spiWriteReg(52, 0x80, 0x00);            // 清空发送缓存区
@@ -171,7 +215,7 @@ int TaskRf(void)
 
     spiWriteReg(36, *(pIdRam + 0), *(pIdRam + 1));
     spiWriteReg(38, *(pIdRam + 2), *(pIdRam + 3));
-    spiWriteReg(39, 0xbd,*(pIdRam + 6));
+    spiWriteReg(39, 0xbd, *(pIdRam + 6));
     spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
     spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
     delayMs(5);
@@ -191,11 +235,11 @@ int TaskRf(void)
                     if ((RegL & 0x0f) == 0x07 || (RegL & 0x0f) == 0x05)
                     {
                         Speed = RegL >> 4;
-                    if((RegL & 0x0f) == 0x05)
-										{
-											ControlCommand=((RegL&0xf0)|0x07);
-										}
-										}
+                        if ((RegL & 0x0f) == 0x05)
+                        {
+                            ControlCommand = ((RegL & 0xf0) | 0x07);
+                        }
+                    }
                     SendUart(ControlCommand);
                 }
             }
@@ -218,8 +262,8 @@ void main(void)
     CCAP0H = pwm0;
     P_SW1 |= 0x80; //P_SW1 0x80 USART 在 RX P1.6 TX P1.7
     UartInit();
-    for (i = 0; i<7; i++)SendUart(*pIdRam++);
-	pIdRam=ID_ADDR_RAM;
+    for (i = 0; i < 7; i++)SendUart(*pIdRam++);
+    pIdRam = ID_ADDR_RAM;
     Timer0Init();
     INMF = 1;
     INMB = 1;
