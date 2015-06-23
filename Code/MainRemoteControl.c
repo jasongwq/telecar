@@ -200,11 +200,11 @@ void main(void)
                 if ((LastKey & 0x0f) == 5)
                 {
                     switch (++Speed)
-                    {
+                    {//됴든틱좋
                     case 4: Speed = 0; LED(0x60); break;//L좋
-                    case 1: LED(0x50); break;//M좋
-                    case 2: LED(0x30); break;//H좋
-                    case 3: LED(0x50); break;//M좋
+                    case 1: LED(0x40); break;//M좋
+                    case 2: LED(0x00); break;//H좋
+                    case 3: LED(0x40); break;//M좋
                     default: Speed = 0; break;
                     }
                 }
