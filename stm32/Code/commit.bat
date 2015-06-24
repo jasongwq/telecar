@@ -1,0 +1,1 @@
+"C:\Program Files (x86)\Git\bin\git.exe" commit -a -m 'tmp'

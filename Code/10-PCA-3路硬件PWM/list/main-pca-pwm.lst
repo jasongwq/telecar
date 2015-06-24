@@ -1,0 +1,101 @@
+C51 COMPILER V9.52.0.0   MAIN_PCA_PWM                                                      06/10/2015 19:59:40 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN_PCA_PWM
+OBJECT MODULE PLACED IN .\list\main-pca-pwm.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE main-pca-pwm.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\list\main-pca-pwm.lst) TABS(2) OBJECT(.\list\main-pca-pwm.obj)
+
+line level    source
+
+   1          
+   2          #include  "config.h"
+   3          #include  "PCA.h"
+   4          //#include  "delay.h"
+   5          
+   6          /*************  功能说明  **************
+   7          
+   8          输出3路变化的PWM信号。类似"呼吸灯"的驱动.
+   9          
+  10          PWM0  为8位PWM.
+  11          PWM1  为7位PWM.
+  12          PWM2  为6位PWM.
+  13          
+  14          
+  15          ******************************************/
+  16          
+  17          
+  18          /*************  本地变量声明  **************/
+  19          
+  20          u8  pwm0;
+  21          bit B_PWM0_Dir; //方向, 0为+, 1为-.
+  22          
+  23          
+  24          void  PCA_config(void)
+  25          {
+  26   1        PCA_InitTypeDef   PCA_InitStructure;
+  27   1      
+  28   1        PCA_InitStructure.PCA_Clock    = PCA_Clock_1T;    //PCA_Clock_1T, PCA_Clock_2T, PCA_Clock_4T, PCA_Clock_6T,
+             - PCA_Clock_8T, PCA_Clock_12T, PCA_Clock_Timer0_OF, PCA_Clock_ECI
+  29   1        PCA_InitStructure.PCA_IoUse    = PCA_P12_P11_P10_P37; //PCA_P12_P11_P10_P37, PCA_P34_P35_P36_P37, PCA_P24
+             -_P25_P26_P27
+  30   1        PCA_InitStructure.PCA_Interrupt_Mode = DISABLE;   //ENABLE, DISABLE
+  31   1        PCA_InitStructure.PCA_Polity   = PolityLow;     //优先级设置  PolityHigh,PolityLow
+  32   1        PCA_InitStructure.PCA_RUN      = DISABLE;     //ENABLE, DISABLE
+  33   1        PCA_Init(PCA_Counter,&PCA_InitStructure);
+  34   1      
+  35   1        PCA_InitStructure.PCA_Mode     = PCA_Mode_PWM;    //PCA_Mode_PWM, PCA_Mode_Capture, PCA_Mode_SoftTimer, PCA
+             -_Mode_HighPulseOutput
+  36   1        PCA_InitStructure.PCA_PWM_Wide = PCA_PWM_8bit;    //PCA_PWM_8bit, PCA_PWM_7bit, PCA_PWM_6bit
+  37   1        PCA_InitStructure.PCA_Interrupt_Mode = DISABLE;   //PCA_Rise_Active, PCA_Fall_Active, ENABLE, DISABLE
+  38   1        PCA_InitStructure.PCA_Value    = 128 << 8;      //对于PWM,高8位为PWM占空比
+  39   1        PCA_Init(PCA0,&PCA_InitStructure);
+  40   1      
+  41   1        CR = 1;
+  42   1      }
+  43          
+  44          
+  45          /******************** task A **************************/
+  46          void main(void)
+  47          {
+  48   1        
+  49   1        PCA_config();
+  50   1        pwm0 = 128;
+  51   1      
+C51 COMPILER V9.52.0.0   MAIN_PCA_PWM                                                      06/10/2015 19:59:40 PAGE 2   
+
+  52   1        B_PWM0_Dir = 0;
+  53   1      
+  54   1        UpdatePwm(PCA0,pwm0);
+  55   1      
+  56   1      //  EA = 1;
+  57   1        
+  58   1        while (1)
+  59   1        {
+  60   2      //    delay_ms(20);
+  61   2      
+  62   2          if(B_PWM0_Dir)
+  63   2          {
+  64   3              if(--pwm0 <= 16)  B_PWM0_Dir = 0; //8位PWM
+  65   3          }
+  66   2          else  if(++pwm0 >= 240) B_PWM0_Dir = 1; //8位PWM
+  67   2          UpdatePwm(PCA0,pwm0);
+  68   2        }
+  69   1      }
+  70          
+  71          
+  72          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    125    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      1       9
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
