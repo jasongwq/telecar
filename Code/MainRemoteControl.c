@@ -3,22 +3,23 @@
 #include <intrins.h>
 #include "delay.h"
 #include "eeprom.h"
-volatile int t = 0;
-bit t1 = 0;
-bit Realse = 0;
-char Speed = 0;
-char LastKey = 0;
-u16 KeyCount = 0;
-u16 KeyCount1 = 0;
+
+bit fTimer10ms     = 0;
+bit KeyRealse      = 0;
+char Speed         = 0;
+char LastKeyNumber = 0;
+u16 KeyCount       = 0;
+u16 SleepCount     = 0;
 
 void tm0_isr() interrupt 1 using 1
 {
+    static volatile int t = 0;
     EA = 0;
     fTimer1ms = 1;
-    t++; if (t > 20)
+    if (t++ > 20)
     {
         t = 0;
-        t1 = 1;
+        fTimer10ms = 1;
     }
     EA = 1;
 }
@@ -39,20 +40,20 @@ void InitLT8900(void)
     RESET_N = 1;
     delayMs(200);
     SCLK = 0;
-    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34+1]);
+    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);
 }
-sbit    KeyT    = P3 ^ 0;           //output
-sbit    KeyR    = P3 ^ 1;           //output
-sbit    KeyL    = P3 ^ 2;           //output
-sbit    KeyD    = P3 ^ 3;           //input
-sbit    KeyS    = P3 ^ 4;           //output
-sbit    KeyB    = P1 ^ 0;           //input
-sbit    KeyF    = P1 ^ 1;           //output
+sbit    KeyT = P3 ^ 0;           //output
+sbit    KeyR = P3 ^ 1;           //output
+sbit    KeyL = P3 ^ 2;           //output
+sbit    KeyD = P3 ^ 3;           //input
+sbit    KeyS = P3 ^ 4;           //output
+sbit    KeyB = P1 ^ 0;           //input
+sbit    KeyF = P1 ^ 1;           //output
 
-sbit    LEDF    = P3 ^ 7;           //output
-sbit    LEDH    = P5 ^ 5;           //output
-sbit    LEDM    = P5 ^ 4;           //output
-sbit    LEDL    = P1 ^ 7;           //output
+sbit    LEDF = P3 ^ 7;           //output
+sbit    LEDH = P5 ^ 5;           //output
+sbit    LEDM = P5 ^ 4;           //output
+sbit    LEDL = P1 ^ 7;           //output
 
 #define Left              0x03
 #define Right             0x02
@@ -75,13 +76,13 @@ void LED(u8 Stata)
 }
 char KeyScan(void)
 {
-    if      (0 == KeyT)return (5 | ((Speed > 1 ? (3 - Speed) : (Speed + 1)) << 4));//调速
-    else if (0 == KeyR)return Right;//右
-    else if (0 == KeyL)return Left;//左
-    else if (0 == KeyD)return ProofreadingFrequency;//对频
-    else if (0 == KeyS)return Skid;//刹车
-    else if (0 == KeyB)return RemoteControlBack;//后
-    else if (0 == KeyF)return (7 + (Speed << 4));//前
+    if      (0 == KeyT)return (5 | ((Speed > 1 ? (3 - Speed) : (Speed + 1)) << 4)); //调速
+    else if (0 == KeyR)return Right; //右
+    else if (0 == KeyL)return Left;  //左
+    else if (0 == KeyD)return ProofreadingFrequency; //对频
+    else if (0 == KeyS)return Skid;  //刹车
+    else if (0 == KeyB)return RemoteControlBack;  //后
+    else if (0 == KeyF)return (7 + (Speed << 4)); //前
     else return 0;
 }
 u8 AddressFrequency[5];
@@ -156,18 +157,18 @@ void main(void)
     InitLT8900();
     EEPROM_read_n(0x0000, AddressFrequency, 5);
     SetLT9010Address();
-    KeyT    = 1;
-    KeyR    = 1;
-    KeyL    = 1;
-    KeyD    = 1;
-    KeyS    = 1;
-    KeyB    = 1;
-    KeyF    = 1;
+    KeyT = 1;
+    KeyR = 1;
+    KeyL = 1;
+    KeyD = 1;
+    KeyS = 1;
+    KeyB = 1;
+    KeyF = 1;
 
-    LEDL    = 0;
-    LEDH    = 1;
-    LEDM    = 1;
-    LEDF    = 1;
+    LEDL = 0;
+    LEDH = 1;
+    LEDM = 1;
+    LEDF = 1;
 
 #if 1==DEBUGLT8910
     debuglt8910();
@@ -178,14 +179,14 @@ void main(void)
     while (1)
     {
         Key = KeyScan();
-        if (t1 == 1)
+        if (fTimer10ms == 1)
         {
-            t1 = 0;
+            fTimer10ms = 0;
             if (0 != Key)
             {
-                LastKey = Key;
-                Realse = 1;
-                KeyCount1 = 0;
+                LastKeyNumber = Key;
+                KeyRealse = 1;
+                SleepCount = 0;
                 if (Key == ProofreadingFrequency)
                 {
                     FunProofreadingFrequency();
@@ -193,14 +194,14 @@ void main(void)
                 RfSend(((Key & 0xf0) == 0x30) ? (Key & 0xdf) : Key);
 
             }
-            else if (Realse)
+            else if (KeyRealse)
             {
-                Realse = 0;
+                KeyRealse = 0;
                 KeyCount = 0;
-                if ((LastKey & 0x0f) == 5)
+                if ((LastKeyNumber & 0x0f) == 5)
                 {
                     switch (++Speed)
-                    {//低电平亮
+                    {   //低电平亮
                     case 4: Speed = 0; LED(0x60); break;//L亮
                     case 1: LED(0x40); break;//M亮
                     case 2: LED(0x00); break;//H亮
@@ -210,12 +211,12 @@ void main(void)
                 }
                 RfSend(0xff);
             }
-            else
+            else//Sleep
             {
-                if (KeyCount1++ > 700)
+                if (SleepCount++ > 700)
                 {
                     u8 SleepSave;
-                    KeyCount1 = 0;
+                    SleepCount = 0;
                     SleepSave = (SleepSave << 1) | LEDF;
                     SleepSave = (SleepSave << 1) | LEDH;
                     SleepSave = (SleepSave << 1) | LEDM;

@@ -29,7 +29,9 @@ void SYS_INIT(void)
     Sys_Printf(USART1, (char *)"USART1 okhghg");
     Sys_Printf(USART2, (char *)"USART2 okrth5");
     //    Sys_Printf(USART3, (char *)"USART3 okewtr");
-    delay_ms(100);
+    delay_ms(100)
+    int *buffer = new int [10];
+    buffer[10]  = 1;
 }
 
 #include "delay.h"
@@ -37,17 +39,17 @@ void SYS_INIT(void)
 void InitLT8900(void)
 {
     //    u8 EepromTmp[3 * 34] = {0x00, 0x01, 0x02, 0x04, 0x05, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x32,
-    //                            0x6f, 0xe0, 0x56, 0x81, 0x66, 0x17, 0x9c, 0xc9, 0x66, 0x37, 0x00, 0x00, 0x6c, 0x90, 0x48, 0x00, 0x7f, 
-	  //                            0xfd, 0x00, 0x08, 0x00, 0x00, 0x48, 0xbd, 0x00, 0xff, 0x80, 0x05, 0x00, 0x67, 0x16, 0x59, 0x19, 0xe0,
-    //                            0x13, 0x00, 0x18, 0x00, 0x48, 0x20, 0x3f, 0xc7, 0x20, 0x00, 0x03, 0x00, 0x03, 0x80, 0x03, 0x80, 0x5a, 
-	  //                            0x5a, 0x03, 0x80, 0x44, 0x02, 0xb0, 0x00, 0xfd, 0xb0, 0x00, 0x0f, 0x01, 0x00, 0x04, 0x80, 0x00, 0x00
+    //                            0x6f, 0xe0, 0x56, 0x81, 0x66, 0x17, 0x9c, 0xc9, 0x66, 0x37, 0x00, 0x00, 0x6c, 0x90, 0x48, 0x00, 0x7f,
+    //                            0xfd, 0x00, 0x08, 0x00, 0x00, 0x48, 0xbd, 0x00, 0xff, 0x80, 0x05, 0x00, 0x67, 0x16, 0x59, 0x19, 0xe0,
+    //                            0x13, 0x00, 0x18, 0x00, 0x48, 0x20, 0x3f, 0xc7, 0x20, 0x00, 0x03, 0x00, 0x03, 0x80, 0x03, 0x80, 0x5a,
+    //                            0x5a, 0x03, 0x80, 0x44, 0x02, 0xb0, 0x00, 0xfd, 0xb0, 0x00, 0x0f, 0x01, 0x00, 0x04, 0x80, 0x00, 0x00
     //                           };
     RESET_N_Init;
     LT8910_SS_Init;
     LT8910_SS = 0;
-    RESET_N = 0;
+    RESET_N   = 0;
     delay_ms(100);
-    RESET_N = 1;
+    RESET_N   = 1;
     delay_ms(200);
     //SCLK = 0;
     SPI0_Init();
@@ -60,7 +62,7 @@ void InitLT8900(void)
     spiWriteReg(5, 0x66, 0x37);
     spiWriteReg(7, 0x00, 0x30);
     spiWriteReg(8, 0x6c, 0x90);
-    spiWriteReg(9, 0x48, 0x00);             // 5.5dBm
+    spiWriteReg(9, 0x48, 0x00);  // 5.5dBm
     spiWriteReg(10, 0x7f, 0xfd);
     spiWriteReg(11, 0x00, 0x08);
     spiWriteReg(12, 0x00, 0x00);
@@ -75,7 +77,7 @@ void InitLT8900(void)
     spiWriteReg(28, 0x18, 0x00);
 
     spiWriteReg(32, 0x48, 0x20);
-	  //spiWriteReg(32, 0x48, 0x00);
+    //spiWriteReg(32, 0x48, 0x00);
     spiWriteReg(33, 0x3f, 0xc7);
     spiWriteReg(34, 0x20, 0x00);
     spiWriteReg(35, 0x03, 0x00);
@@ -84,12 +86,12 @@ void InitLT8900(void)
     //    spiWriteReg(38, 0x5a, 0x5a);
     spiWriteReg(39, 0x03, 0x80);
     spiWriteReg(40, 0x44, 0x02);
-    spiWriteReg(41, 0xB0, 0x00);//crc on scramble off ,1st byte packet length ,auto ack off
-    spiWriteReg(42, 0xfd, 0xb0);//
+    spiWriteReg(41, 0xB0, 0x00); //crc on scramble off ,1st byte packet length ,auto ack off
+    spiWriteReg(42, 0xfd, 0xb0); //
     spiWriteReg(43, 0x00, 0x0f);
     spiWriteReg(44, 0x10, 0x00);
     spiWriteReg(45, 0x04, 0x80);
-		//spiWriteReg(45, 0x05, 0x52);
+    //spiWriteReg(45, 0x05, 0x52);
 
 
     spiWriteReg(50, 0x00, 0x00);
@@ -101,11 +103,11 @@ void InitLT8900(void)
 }
 void RfSend(u8 Data)
 {
-    spiWriteReg(7, 0x00, 0x30);             // 2402 + 48 = 2.45GHz
-    spiWriteReg(52, 0x80, 0x00);            // 清空发送缓存区
+    spiWriteReg(7, 0x00, 0x30);  // 2402 + 48 = 2.45GHz
+    spiWriteReg(52, 0x80, 0x00); // 清空发送缓存区
     // 发送1个字节
     spiWriteReg(50, 1, Data );
-    spiWriteReg(7, 0x01, 0x30);             // 允许发射使能
+    spiWriteReg(7, 0x01, 0x30);  // 允许发射使能
 }
 void debuglt8910(void)
 {
@@ -149,8 +151,8 @@ int TaskRf(void)
     debuglt8910();
     spiWriteReg(7, 0x00, 0x30);
     delay_ms(3);
-    spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-    spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+    spiWriteReg(52, 0x00, 0x80); // 清接收缓存区
+    spiWriteReg(7, 0x00, 0xB0);  // 允许接收使能
     delay_ms(5);
     while (1)
     {
@@ -166,13 +168,14 @@ int TaskRf(void)
                 spiReadreg(50); tmp[0] = RegH; tmp[1] = RegL;
                 if (0x03 == tmp[0])
                 {
-                    spiReadreg(50); tmp[2] = RegH; tmp[3] = RegL;
-									  u8 test=(u8)((u8)tmp[1]-(u8)lasti)>10?(lasti-tmp[1]):(tmp[1]-lasti);
-                    if (1==test)
+                    spiReadreg(50);
+                    tmp[2]  = RegH; tmp[3] = RegL;
+                    u8 test = (u8)((u8)tmp[1] - (u8)lasti) > 10 ? (lasti - tmp[1]) : (tmp[1] - lasti);
+                    if (1 == test)
                     {
-											Sys_Printf(USART2, (char *)" %x", tmp[3] % 16);
-//											 Sys_Printf(USART2, (char *)" %x", tmp[1]);
-//                       Sys_Printf(USART2, (char *)" %x", lasti);
+                        Sys_Printf(USART2, (char *)" %x", tmp[3] % 16);
+                        //                                           Sys_Printf(USART2, (char *)" %x", tmp[1]);
+                        //                       Sys_Printf(USART2, (char *)" %x", lasti);
                     }
                     else
                     {
@@ -182,9 +185,9 @@ int TaskRf(void)
                     lasti = tmp[1];
                 }
             }
-						spiWriteReg(7, 0x00, 0x30);             // 允许接收使能
-            spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
-            spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+            spiWriteReg(7, 0x00, 0x30);  // 允许接收使能
+            spiWriteReg(52, 0x80, 0x80); // 清接收缓存区
+            spiWriteReg(7, 0x00, 0xB0);  // 允许接收使能
         }
     }
     _EE
@@ -196,8 +199,8 @@ int TaskS(void)
     debuglt8910();
     spiWriteReg(7, 0x00, 0x30);
     delay_ms(3);
-    spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-    spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+    spiWriteReg(52, 0x00, 0x80); // 清接收缓存区
+    spiWriteReg(7, 0x00, 0xB0);  // 允许接收使能
     delay_ms(5);
     while (1)
     {

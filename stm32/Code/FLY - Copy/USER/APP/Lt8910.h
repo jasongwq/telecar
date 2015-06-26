@@ -5,16 +5,16 @@
 #include "gpio.h"
 
 #ifdef __cplusplus
-       extern "C" {
+extern "C" {
 #endif
 
 #define Delay10us() delay_us(10)
 volatile unsigned char RegH, RegL;
 
-#define LT8910_SS_Init   PB12_OUT
-#define	LT8910_SS 		PBout(12)       		//output
-#define	RESET_N_Init	PA0_OUT  			//output
-#define	RESET_N	      PAout(0)  			//output
+#define LT8910_SS_Init  PB12_OUT
+#define LT8910_SS       PBout(12)               //output
+#define RESET_N_Init    PA0_OUT             //output
+#define RESET_N         PAout(0)              //output
 #define SPI0_SCK_Init   PB13_OUT
 #define Set_SPI0_SCK    Set_B13
 #define Clr_SPI0_SCK    Clr_B13
@@ -28,7 +28,7 @@ u8 SPI0_ReadWriteByte(u8 TxData)                                        //SPI¶ÁÐ
     u8 i;
     for (i = 0; i < 8; i++)
     {
-			if(TxData & 0x80)
+        if (TxData & 0x80)
         {
             Set_SPI0_MOSI
         }
@@ -43,7 +43,7 @@ u8 SPI0_ReadWriteByte(u8 TxData)                                        //SPI¶ÁÐ
         Clr_SPI0_SCK                             // ..then set SCK low again
     }
     return (TxData);                             // return read UINT8
-}void SPI0_Init(void)
+} void SPI0_Init(void)
 {
     SPI0_SCK_Init
     SPI0_MISO_Init
@@ -88,6 +88,6 @@ void spiReadreg(unsigned char reg)
     LT8910_SS = 1;
 }
 #ifdef __cplusplus
-        }
+}
 #endif
 #endif
