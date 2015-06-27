@@ -101,14 +101,6 @@ void InitLT8900(void)
     delay_ms(2);
     spiWriteReg(7, 0x00, 0x30);
 }
-void RfSend(u8 Data)
-{
-    spiWriteReg(7, 0x00, 0x30);  // 2402 + 48 = 2.45GHz
-    spiWriteReg(52, 0x80, 0x00); // 清空发送缓存区
-    // 发送1个字节
-    spiWriteReg(50, 1, Data );
-    spiWriteReg(7, 0x01, 0x30);  // 允许发射使能
-}
 void debuglt8910(void)
 {
     spiReadreg(0);  Sys_Printf(USART2, (char *)"\r\n %d,%d", RegH, RegL);
@@ -157,7 +149,7 @@ int TaskRf(void)
     while (1)
     {
         static unsigned char lasti;
-        u8 tmp[4];
+        u8 RfFifo[4];
         WaitX(1);
         spiReadreg(48);
         if (0x40 == (RegL & 0x40))
@@ -165,47 +157,28 @@ int TaskRf(void)
             spiReadreg(48);
             if (0x00 == (RegH & 0x80))
             {
-                spiReadreg(50); tmp[0] = RegH; tmp[1] = RegL;
-                if (0x03 == tmp[0])
+                spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;
+                if (0x03 == RfFifo[0])
                 {
                     spiReadreg(50);
-                    tmp[2]  = RegH; tmp[3] = RegL;
-                    u8 test = (u8)((u8)tmp[1] - (u8)lasti) > 10 ? (lasti - tmp[1]) : (tmp[1] - lasti);
+                    RfFifo[2]  = RegH; RfFifo[3] = RegL;
+                    u8 test = (u8)((u8)RfFifo[1] - (u8)lasti) > 10 ? (lasti - RfFifo[1]) : (RfFifo[1] - lasti);
                     if (1 == test)
                     {
-                        Sys_Printf(USART2, (char *)" %x", tmp[3] % 16);
-                        //                                           Sys_Printf(USART2, (char *)" %x", tmp[1]);
-                        //                       Sys_Printf(USART2, (char *)" %x", lasti);
+                        Sys_Printf(USART2, (char *)" %x", RfFifo[3] % 16);
                     }
                     else
                     {
-                        Sys_Printf(USART2, (char *)" %x", tmp[2] % 16);
-                        Sys_Printf(USART2, (char *)" %x", tmp[3] % 16);
+                        Sys_Printf(USART2, (char *)" %x", RfFifo[2] % 16);
+                        Sys_Printf(USART2, (char *)" %x", RfFifo[3] % 16);
                     }
-                    lasti = tmp[1];
+                    lasti = RfFifo[1];
                 }
             }
             spiWriteReg(7, 0x00, 0x30);  // 允许接收使能
             spiWriteReg(52, 0x80, 0x80); // 清接收缓存区
             spiWriteReg(7, 0x00, 0xB0);  // 允许接收使能
         }
-    }
-    _EE
-}
-int TaskS(void)
-{
-    _SS
-    InitLT8900();
-    debuglt8910();
-    spiWriteReg(7, 0x00, 0x30);
-    delay_ms(3);
-    spiWriteReg(52, 0x00, 0x80); // 清接收缓存区
-    spiWriteReg(7, 0x00, 0xB0);  // 允许接收使能
-    delay_ms(5);
-    while (1)
-    {
-        WaitX(200);
-        RfSend(0xff);
     }
     _EE
 }

@@ -9,65 +9,40 @@
 
 void InitLT8900(void)
 {
+    u8 EepromTmp[3 * 34] = {0x00, 0x01, 0x02, 0x04, 0x05, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x16, 0x17, 0x18, 0x19, 0x1a,
+                            0x1b, 0x1c, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x32,
+                            0x6f, 0xe0, 0x56, 0x81, 0x66, 0x17, 0x9c, 0xc9, 0x66, 0x37, 0x00, 0x00, 0x6c, 0x90, 0x48, 0x00, 0x7f,
+                            0xfd, 0x00, 0x08, 0x00, 0x00, 0x48, 0xbd, 0x00, 0xff, 0x80, 0x05, 0x00, 0x67, 0x16, 0x59, 0x19, 0xe0,
+                            0x13, 0x00, 0x18, 0x00, 0x48, 0x20, 0x3f, 0xc7, 0x20, 0x00, 0x03, 0x00, 0x03, 0x80, 0x03, 0x80, 0x03,
+                            0x80, 0x03, 0x80, 0x44, 0x02, 0xb0, 0x00, 0xfd, 0xb0, 0x00, 0x0f, 0x01, 0x00, 0x04, 0x80, 0x00, 0x00
+                           };
+    char i;
     RESET_N = 0;
     delayMs(100);
     RESET_N = 1;
     delayMs(200);
     SCLK = 0;
-    spiWriteReg(0, 0x6f, 0xe0);
-    spiWriteReg(1, 0x56, 0x81);
-    spiWriteReg(2, 0x66, 0x17);
-    spiWriteReg(4, 0x9c, 0xc9);
-    spiWriteReg(5, 0x66, 0x37);
-    spiWriteReg(7, 0x00, 0x00);
-    spiWriteReg(8, 0x6c, 0x90);
-    spiWriteReg(9, 0x48, 0x00);             // 5.5dBm
-    spiWriteReg(10, 0x7f, 0xfd);
-    spiWriteReg(11, 0x00, 0x08);
-    spiWriteReg(12, 0x00, 0x00);
-    spiWriteReg(13, 0x48, 0xbd);//14
-    spiWriteReg(22, 0x00, 0xff);
-    spiWriteReg(23, 0x80, 0x05);
-    spiWriteReg(24, 0x00, 0x67);
-    spiWriteReg(25, 0x16, 0x59);
-    spiWriteReg(26, 0x19, 0xe0);
-    spiWriteReg(27, 0x13, 0x00);
-    spiWriteReg(28, 0x18, 0x00);//7
-    spiWriteReg(32, 0x50, 0x00);
-    spiWriteReg(33, 0x3f, 0xc7);
-    spiWriteReg(34, 0x20, 0x00);
-    spiWriteReg(35, 0x03, 0x00);
-    spiWriteReg(36, 0x03, 0x80);
-    spiWriteReg(37, 0x03, 0x80);
-    spiWriteReg(38, 0x5a, 0x5a);
-    spiWriteReg(39, 0x03, 0x80);
-    spiWriteReg(40, 0x44, 0x02);
-    spiWriteReg(41, 0xB0, 0x00);  //crc on scramble off ,1st byte packet length ,auto ack off
-    spiWriteReg(42, 0xfd, 0xb0);  //
-    spiWriteReg(43, 0x00, 0x0f);
-    spiWriteReg(44, 0x01, 0x00);
-    spiWriteReg(45, 0x01, 0x52);//14
-
-    spiWriteReg(50, 0x00, 0x00);
+    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);
 }
+#define ID_ADDR_RAM 0xF1
 
-volatile unsigned char  lastpwm0, pwm0 = 0xff - 36;
-u16 i;
-u32 tmp;
-int TimeCount = 0;
-int a;
-char Speed = 0;
-char ControlCommand = -1;
-#define ID_ADDR_RAM 0xF1                //STC104W系列ID号的存放在RAM区的地址
-unsigned char *pIdRam = 0xF1;
+volatile u8 lastpwm0, pwm0 = 0xff - 36;
+u8 *pIdRam = ID_ADDR_RAM;
+u8 Speed     = 0;
+s8 ControlCommand   = -1;
+u16 i   = 0;
+u32 tmp = 0;
+static u8 Runing = 0;
+static u8 Turning = 0;
 
-sbit    OutR    = P3 ^ 1;//output
-sbit    OutL    = P3 ^ 3;//output
-sbit    OutF    = P3 ^ 5;//output
-sbit    OutB    = P3 ^ 6;//output
-sbit    PWM     = P1 ^ 1;//output
-sbit    INMF    = P3 ^ 7;//input
-sbit    INMB    = P1 ^ 0;//input
+
+sbit    OutR = P3 ^ 1;//output
+sbit    OutL = P3 ^ 3;//output
+sbit    OutF = P3 ^ 5;//output
+sbit    OutB = P3 ^ 6;//output
+sbit    PWM  = P1 ^ 1;//output
+sbit    INMF = P3 ^ 7;//input
+sbit    INMB = P1 ^ 0;//input
 
 void tm0_isr() interrupt 1 using 1
 {
@@ -77,22 +52,26 @@ void tm0_isr() interrupt 1 using 1
     EA = 1;
 }
 
-#define Left              0x03
-#define Right             0x02
-#define Stop              0x0A
-#define Skid              0x01
-#define RemoteControlRunH 0x27
-#define RemoteControlRunM 0x17
-#define RemoteControlRunL 0x07
-#define RemoteControlBack 0x06
-#define ManualControlRunH 0x28
-#define ManualControlRunM 0x18
-#define ManualControlRunL 0x08
-#define ManualControlBack 0x09
-#define ProofreadingFrequency 0xf4
+#define Left                 0x10//43
+#define Right                0x18//43
+#define Stop                 0x84
+#define Skid                 0x80//70
+#define RemoteControlSpeed   0x20//5
+#define RemoteControlRun     0x04//2
+#define RemoteControlRunH    0x06//210
+#define RemoteControlRunM    0x05//210
+#define RemoteControlRunL    0x04//210
+#define RemoteControlBack    0x81//70
+#define ManualControlRun     0x40//6
+#define ManualControlRunH    0x42//610
+#define ManualControlRunM    0x41//610
+#define ManualControlRunL    0x40//610
+#define ManualControlBack    0x83//710
+#define ProofreadingFrequency 0x82//710
 
 
 #define PWMOUT(time,highttime) \
+    Runing=1;\
     ControlCommand = -1;\
     lastpwm0 = pwm0;\
     for (i = 0; i < (time); i++){\
@@ -103,6 +82,7 @@ void tm0_isr() interrupt 1 using 1
     } pwm0 = (highttime); CCAP0H = 0xff - pwm0
 
 #define PWMOUTHIGH(time) \
+    Runing=1;\
     ControlCommand = -1;\
     lastpwm0 = pwm0;\
     for (i = 0; i < time; i++){\
@@ -112,16 +92,17 @@ void tm0_isr() interrupt 1 using 1
 
 char TaskControl(void)
 {
+    static s16 DirectionCount = 0;
     _SS
     while (1)
     {
         WaitX(1);
-        if (0 == INMF)ControlCommand = RemoteControlRunL | Speed;
-        if (0 == INMB)ControlCommand = ManualControlBack | Speed;
+        if (0 == INMF)ControlCommand = ManualControlRun | Speed;
+        if (0 == INMB)ControlCommand = ManualControlBack;
         if (ControlCommand == Skid)
         {
             pwm0 = 255; CCAP0H = 0xff - pwm0;
-            OutF = 0;
+            OutF = 0; OutB = 0;
         }
         else if ((ControlCommand == ManualControlRunL) || (ControlCommand == RemoteControlRunL))
         {
@@ -159,8 +140,37 @@ char TaskControl(void)
             pwm0 = 36;
             PWMOUT(3000, 78);//PwmOut(3, 26 * 3);
         }
-        else if (ControlCommand == Left || ControlCommand == Right || ControlCommand == Stop);
-        else ControlCommand = -1;
+        if (ControlCommand == Left)
+        {
+            Turning = 1;
+            ControlCommand = -1;
+            if (DirectionCount < 1000) {OutL = 1; DirectionCount++;} //WaitX(1000); OutL = 0;
+        }
+        else if (ControlCommand == Right)
+        {
+            Turning = 1;
+            ControlCommand = -1;
+            if (DirectionCount > -1000)
+            {OutR = 1; DirectionCount--;} //WaitX(1000); OutR = 0;
+        }
+        if (Turning)
+        {
+            if (Turning++ > 40)
+            {
+                OutR = 0;
+                OutL = 0;
+                Turning = 0;
+            }
+        }
+        if (Runing)
+        {
+            if (Runing++ > 40)
+            {
+                ControlCommand = Stop;
+                Runing = 0;
+            }
+        }
+
     }
     _EE
 }
@@ -170,57 +180,48 @@ int TaskControl2(void)
     while (1)
     {
         WaitX(1);
-        if (ControlCommand == Left)
+        if (ControlCommand == Stop)
         {
-            ControlCommand = -1;
-            OutL = 1; WaitX(1000); OutL = 0;
-        }
-        else if (ControlCommand == Right)
-        {
-            ControlCommand = -1;
-            OutR = 1; WaitX(1000); OutR = 0;
-        }
-        else if (ControlCommand == Stop)
-        {
-            ControlCommand = -1;
             pwm0 = 255; CCAP0H = 0xff - pwm0;
             WaitX(1000);
-            OutF = 0;
+            if (Runing == 0) {OutF = 0; OutB = 0; ControlCommand = -1;}
         }
-        else if (ControlCommand == Skid || ControlCommand == RemoteControlRunH || ControlCommand == RemoteControlRunM || ControlCommand == RemoteControlRunL || ControlCommand == RemoteControlBack || ControlCommand == ManualControlRunH || ControlCommand == ManualControlRunM || ControlCommand == ManualControlRunL || ControlCommand == ManualControlBack);
-        else ControlCommand = -1;
     }
     _EE
 }
+#define FIFONUM 4
 int TaskRf(void)
-{
+{   static u8 RfFifo[FIFONUM];
     _SS
     InitLT8900();
     spiWriteReg(7, 0x00, 0x30);
     delayMs(3);
-    spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-    spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+    spiWriteReg(52, 0x00, 0x80);
+    spiWriteReg(7, 0x00, 0xB0);
     delayMs(5);
     for (i = 0; i < 10; i++)
     {
         spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
-        spiWriteReg(52, 0x80, 0x00);            // 清空发送缓存区
-        // 发送1个字节
+        spiWriteReg(52, 0x80, 0x00);
+
         spiWriteReg(50, 5, *(pIdRam + 6));
         spiWriteReg(50, *(pIdRam + 0), *(pIdRam + 1));
         spiWriteReg(50, *(pIdRam + 2), *(pIdRam + 3));
-        spiWriteReg(7, 0x01, 0x30);             // 允许发射使能
+        spiWriteReg(7, 0x01, 0x30);
         WaitX(20);
     }
 
     spiWriteReg(36, *(pIdRam + 0), *(pIdRam + 1));
     spiWriteReg(38, *(pIdRam + 2), *(pIdRam + 3));
     spiWriteReg(39, 0xbd, *(pIdRam + 6));
-    spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区
-    spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+    spiWriteReg(52, 0x00, 0x80);
+    spiWriteReg(7, 0x00, 0xB0);
     delayMs(5);
     while (1)
     {
+        static unsigned char lasti;
+        u8 Data;
+        u8 test;
         WaitX(2);
         spiReadreg(48);
         if (0x40 == (RegL & 0x40))
@@ -228,23 +229,40 @@ int TaskRf(void)
             spiReadreg(48);
             if (0x00 == (RegH & 0x80))
             {
-                spiReadreg(50);
-                if (0x01 == RegH)
+                spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;
+                if ((FIFONUM - 1) == RfFifo[0])
                 {
-                    if (RegL < 0x48)ControlCommand = RegL;
-                    if ((RegL & 0x0f) == 0x07 || (RegL & 0x0f) == 0x05)
+                    spiReadreg(50);
+                    RfFifo[2]  = RegH; RfFifo[3] = RegL;
+                    test = (u8)((u8)RfFifo[1] - (u8)lasti) > 10 ? (lasti - RfFifo[1]) : (RfFifo[1] - lasti);
+                    if (1 == test)
                     {
-                        Speed = RegL >> 4;
-                        if ((RegL & 0x0f) == 0x05)
+                        Data = RfFifo[3];
+                    }
+                    else
+                    {
+                        Data = RfFifo[2];
+                        ControlCommand = Data ;
+                        if ((Data  & 0x84) == 0x04)
                         {
-                            ControlCommand = ((RegL & 0xf0) | 0x07);
+                            Speed = (Data & 0x03);
                         }
+                        SendUart(ControlCommand);
+                        WaitX(2);
+                        Data = RfFifo[3];
+                    }
+                    lasti = RfFifo[1];
+                    ControlCommand = Data ;
+                    if ((Data  & 0x84) == 0x04)
+                    {
+                        Speed = (Data & 0x03);
                     }
                     SendUart(ControlCommand);
                 }
             }
-            spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区
-            spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
+            spiWriteReg(7, 0x00, 0x30);
+            spiWriteReg(52, 0x80, 0x80);
+            spiWriteReg(7, 0x00, 0xB0);
         }
     }
     _EE
@@ -260,7 +278,7 @@ void main(void)
     OutB = 0;
     PCA_config();
     CCAP0H = pwm0;
-    P_SW1 |= 0x80; //P_SW1 0x80 USART 在 RX P1.6 TX P1.7
+    P_SW1 |= 0x80; //P_SW1 0x80 USART 脭脷 RX P1.6 TX P1.7
     UartInit();
     for (i = 0; i < 7; i++)SendUart(*pIdRam++);
     pIdRam = ID_ADDR_RAM;
@@ -269,8 +287,9 @@ void main(void)
     INMB = 1;
     for (;;)
     {
-        RunTaskA(TaskControl2, 0);
+        RunTaskA(TaskControl, 0);
+        RunTaskA(TaskControl2, 1);
         RunTaskA(TaskRf, 2);
-        RunTaskA(TaskControl, 1);
+
     }
 }

@@ -1,0 +1,341 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"D",
+				"Data"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "MainMasterDriver.c",
+			"settings":
+			{
+				"buffer_size": 9673,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "#include \"STC15W401.h\"\n#include \"spi.h\"\n#include <intrins.h>\n#include \"delay.h\"\n#include \"eeprom.h\"\n\nbit fTimer10ms     = 0;\nbit KeyRealse      = 0;\nchar Speed         = 0;\nchar LastKeyNumber = 0;\nu16 KeyCount       = 0;\nu16 SleepCount     = 0;\n\nvoid tm0_isr() interrupt 1 using 1\n{\n    static volatile int t = 0;\n    EA = 0;\n    fTimer1ms = 1;\n    if (t++ > 20)\n    {\n        t = 0;\n        fTimer10ms = 1;\n    }\n    EA = 1;\n}\n\n#define DEBUGUSART 0\n#if 1==DEBUGUSART\n#include \"usart.h\"\n#endif\n#define DEBUGLT8910 0\n#include \"lt8910.h\"\n//void InitLT8900(void)\n//{\n//    u8 EepromTmp[3 * 34];\n//    char i;\n//    EEPROM_read_n(0x0200, EepromTmp, 3 * 34);\n//    RESET_N = 0;\n//    delayMs(100);\n//    RESET_N = 1;\n//    delayMs(200);\n//    SCLK = 0;\n//    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);\n//}\nvoid InitLT8900(void)\n{\n    u8 EepromTmp[3 * 34] = {0x00, 0x01, 0x02, 0x04, 0x05, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x16, 0x17, 0x18, 0x19, 0x1a,\n                            0x1b, 0x1c, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x32,\n                            0x6f, 0xe0, 0x56, 0x81, 0x66, 0x17, 0x9c, 0xc9, 0x66, 0x37, 0x00, 0x00, 0x6c, 0x90, 0x48, 0x00, 0x7f,\n                            0xfd, 0x00, 0x08, 0x00, 0x00, 0x48, 0xbd, 0x00, 0xff, 0x80, 0x05, 0x00, 0x67, 0x16, 0x59, 0x19, 0xe0,\n                            0x13, 0x00, 0x18, 0x00, 0x48, 0x20, 0x3f, 0xc7, 0x20, 0x00, 0x03, 0x00, 0x03, 0x80, 0x03, 0x80, 0x03,\n                            0x80, 0x03, 0x80, 0x44, 0x02, 0xb0, 0x00, 0xfd, 0xb0, 0x00, 0x0f, 0x01, 0x00, 0x04, 0x80, 0x00, 0x00\n                           };\n    char i;\n    RESET_N = 0;\n    delayMs(100);\n    RESET_N = 1;\n    delayMs(200);\n    SCLK = 0;\n    for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);\n}\nsbit    KeyT = P3 ^ 0;           //output\nsbit    KeyR = P3 ^ 1;           //output\nsbit    KeyL = P3 ^ 2;           //output\nsbit    KeyD = P3 ^ 3;           //input\nsbit    KeyS = P3 ^ 4;           //output\nsbit    KeyB = P1 ^ 0;           //input\nsbit    KeyF = P1 ^ 1;           //output\n\nsbit    LEDF = P3 ^ 7;           //output\nsbit    LEDH = P5 ^ 5;           //output\nsbit    LEDM = P5 ^ 4;           //output\nsbit    LEDL = P1 ^ 7;           //output\n\n#define Left              0x10\n#define Right             0x18\n#define Skid              0x80\n#define RemoteControlSpeed  0xf0\n#define RemoteControlRun  0x04\n#define RemoteControlRunH 0x06\n#define RemoteControlRunM 0x05\n#define RemoteControlRunL 0x04\n#define RemoteControlBack 0x81\n#define ProofreadingFrequency 0x82\nvoid LED(u8 Stata)\n{\n    LEDH = (Stata >> 6);\n    LEDM = (Stata >> 5) & 0x01;\n    LEDL = (Stata >> 4) & 0x01;\n}\nchar KeyScan(void)\n{\n    u8 Key = 0;\n    if (0      == KeyT)return RemoteControlSpeed; //调速\n    if (0      == KeyR)Key |= Right; //右\n    else if (0 == KeyL)Key |= Left; //左\n    if (0      == KeyF)Key |= RemoteControlRun | Speed; //前\n    else if (0 == KeyB)return RemoteControlBack;  //后\n    if (0      == KeyD)return ProofreadingFrequency; //对频\n    if (0      == KeyS)return Skid;  //刹车\n    return Key;\n}\nu8 AddressFrequency[5];\nvolatile char Key;\nvoid exint0() interrupt 0\n{\n}\nvoid SetLT9010Address(void)\n{\n    spiWriteReg(39, 0xbd, AddressFrequency[0]);\n    spiWriteReg(36, AddressFrequency[1], AddressFrequency[2]);\n    spiWriteReg(38, AddressFrequency[3], AddressFrequency[4]);\n}\nvoid FunProofreadingFrequency(void)//对频\n{\n    KeyCount++; //SendUart(KeyCount);\n    if (KeyCount > 100)\n    {\n        spiWriteReg(36, 0x03, 0x80);\n        spiWriteReg(38, 0x5a, 0x5a);\n        spiWriteReg(39, 0x03, 0x80);\n\n        spiWriteReg(7, 0x00, 0x30);\n        delayMs(3);\n        spiWriteReg(52, 0x00, 0x80);            // 清接收缓存区\n        spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能\n        delayMs(50);\n        LEDF = 0;\n        for (;;)\n        {\n            spiReadreg(48);\n            if (0x40 == (RegL & 0x40))\n            {\n                spiReadreg(48);\n                if (0x00 == (RegH & 0x80))\n                {\n                    spiReadreg(50);\n                    if (0x05 == RegH)\n                    {\n                        AddressFrequency[0] = RegL;\n                        spiReadreg(50); AddressFrequency[1] = RegH; AddressFrequency[2] = RegL;\n                        spiReadreg(50); AddressFrequency[3] = RegH; AddressFrequency[4] = RegL;\n                        SetLT9010Address();\n                        EEPROM_SectorErase(0x0000);\n                        EEPROM_write_n(0x0000, AddressFrequency, 5);\n                        LEDF = 1;\n                        break;\n                    }\n                }\n                spiWriteReg(52, 0x80, 0x80);            // 清接收缓存区\n                spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能\n            }\n            delayMs(2);\n        }\n    }\n}\nvoid RfSend(u8 Data)\n{\n    static unsigned char i = 0;\n    static unsigned char lastdata = 0;\n\n    spiWriteReg(7, 0x00, 0x30);             // 2402 + 48 = 2.45GHz\n    spiWriteReg(52, 0x80, 0x00);            // 清空发送缓存区\n    // 发送1个字节\n    spiWriteReg(50, 3, i++ );\n    spiWriteReg(50, lastdata, Data );\n    spiWriteReg(7, 0x01, 0x30);             // 允许发射使能\n    lastdata = Data;\n}\nvoid main(void)\n{\n#if 1==DEBUGUSART\n    UartInit();\n    SendUart(0x11);\n#endif\n    Timer0Init();\n    InitLT8900();\n    EEPROM_read_n(0x0000, AddressFrequency, 5);\n    SetLT9010Address();\n    KeyT = 1;\n    KeyR = 1;\n    KeyL = 1;\n    KeyD = 1;\n    KeyS = 1;\n    KeyB = 1;\n    KeyF = 1;\n\n    LEDL = 0;\n    LEDH = 1;\n    LEDM = 1;\n    LEDF = 1;\n\n#if 1==DEBUGLT8910\n    debuglt8910();\n#endif\n    IT0 = 1;\n    EX0 = 1;\n    EA = 1;\n    while (1)\n    {\n        Key = KeyScan();\n        if (fTimer10ms == 1)\n        {\n            fTimer10ms = 0;\n            if (0 != Key)\n            {\n                LastKeyNumber = Key;\n                KeyRealse = 1;\n                SleepCount = 0;\n                if (Key == ProofreadingFrequency)\n                {\n                    FunProofreadingFrequency();\n                }\n                RfSend(((Key & 0xf0) == 0x30) ? (Key & 0xdf) : Key);\n            }\n            else if (KeyRealse)\n            {\n                KeyRealse = 0;\n                KeyCount = 0;\n                if ((LastKeyNumber & 0x0f) == 5)\n                {\n                    switch (++Speed)\n                    {   //低电平亮\n                    case 4: Speed = 0; LED(0x60); break;//L亮\n                    case 1: LED(0x40); break;//M亮\n                    case 2: LED(0x00); break;//H亮\n                    case 3: LED(0x40); break;//M亮\n                    default: Speed = 0; break;\n                    }\n                }\n                RfSend(0xff);\n            }\n            else//Sleep\n            {\n                if (SleepCount++ > 700)\n                {\n                    u8 SleepSave;\n                    SleepCount = 0;\n                    SleepSave = (SleepSave << 1) | LEDF;\n                    SleepSave = (SleepSave << 1) | LEDH;\n                    SleepSave = (SleepSave << 1) | LEDM;\n                    SleepSave = (SleepSave << 1) | LEDL;\n                    SleepSave = (SleepSave << 4);\n                    LEDF = 1;\n                    LED(0x70);\n                    PCON = 0x02;\n                    _nop_();\n                    _nop_();\n                    _nop_();\n                    _nop_();\n                    LEDF = (SleepSave >> 7) & 0x01;\n                    LED(SleepSave);\n                }\n            }\n        }\n    }\n}\n",
+			"file": "MainRemoteControl.c",
+			"file_size": 7867,
+			"file_write_time": 130797999047891256,
+			"settings":
+			{
+				"buffer_size": 7548,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/D/SkyDrive/Program Files/Sublime Text Build 3083 x64/Data/Packages/User/Base File.sublime-settings",
+			"settings":
+			{
+				"buffer_size": 1188,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"last_filter": "pack",
+		"selected_items":
+		[
+			[
+				"pack",
+				"Package Control: Install Package"
+			],
+			[
+				"Alignment",
+				"Preferences: Alignment Key Bindings – User"
+			],
+			[
+				"packin",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 528.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = 'eb2297e1a458f27d836c04bb0cbaf282' + 'd0e7a3098092775ccb37ca9d6b2e4b7d'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/E/WORK/Project/telecar/Code"
+	],
+	"file_history":
+	[
+		"/E/WORK/Project/telecar/Code/MainRemoteControl.c",
+		"/E/WORK/Project/telecar/Code/MainMasterDriver.c",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64/Data/Packages/User/Base File.sublime-settings",
+		"/E/Users/JASON_G/Desktop/at.c",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64(安装好格式化插件)/Sublime Text Build 3083 x64/Data/Packages/User/Base File.sublime-settings",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64(安装好格式化插件)/Sublime Text Build 3083 x64/Data/Packages/User/Default (Windows).sublime-keymap",
+		"/E/WORK/Project/telecar/stm32/Code/FLY - Copy/USER/main.cpp",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64(安装好格式化插件)/Sublime Text Build 3083 x64/Data/Packages/Alignment/Base File.sublime-settings",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64(安装好格式化插件)/Sublime Text Build 3083 x64/Data/Packages/Alignment/Default (Windows).sublime-keymap",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64(安装好格式化插件)/Sublime Text Build 3083 x64/Data/Packages/User/JSON.sublime-settings",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64/Data/Packages/SublimeAStyleFormatter/SublimeAStyleFormatter.sublime-settings",
+		"/E/WORK/Project/telecar/stm32/Code/FLY - Copy/USER/APP/Lt8910.h",
+		"/D/SkyDrive/Program Files/Sublime Text Build 3083 x64/Data/Packages/User/SublimeAStyleFormatter.sublime-settings"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"Speed",
+			"RunCount",
+			"SetLT9010Address",
+			"FunProofreadingFrequency",
+			"RfFifo[3]",
+			"RegL",
+			"TaskRf",
+			"TimeCount",
+			"tmp",
+			"LastKey",
+			"KeyCount1",
+			"Realse",
+			"t1"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 2,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "MainMasterDriver.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9673,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4723,
+								4723
+							]
+						],
+						"settings":
+						{
+							"in_converting": true,
+							"origin_encoding": "UTF-8",
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "MainRemoteControl.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7548,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2513,
+								2513
+							]
+						],
+						"settings":
+						{
+							"in_converting": true,
+							"origin_encoding": "GB2312",
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 778.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/D/SkyDrive/Program Files/Sublime Text Build 3083 x64/Data/Packages/User/Base File.sublime-settings",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1188,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								784,
+								784
+							]
+						],
+						"settings":
+						{
+							"origin_encoding": "ASCII",
+							"syntax": "Packages/JavaScript/JSON.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 21.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.astyle_error_message":
+	{
+		"height": 0.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "Code.sublime-project",
+	"replace":
+	{
+		"height": 38.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"E:\\WORK\\Project\\telecar\\Code\\Code.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 279.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

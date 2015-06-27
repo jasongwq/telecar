@@ -10,6 +10,10 @@
 typedef 	unsigned char	u8;
 typedef 	unsigned int	u16;
 typedef 	unsigned long	u32;
+typedef 	char	s8;
+typedef 	int	  s16;
+typedef 	long	s32;
+
 #define MCU_FREQ                             24000000 // 设置晶振频率
 #define MAIN_Fosc		22118400L	//定义主时钟
 
