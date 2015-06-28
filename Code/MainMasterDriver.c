@@ -45,8 +45,9 @@ struct {
     volatile u8 Runing;
     volatile u8 Turning;
     volatile u8 Speed;
-    s16 DirectionCount;
-} Control = { -1, 0, 0, 0, 0, 0};
+    s16 RDirectionCount;
+	  s16 LDirectionCount;
+} Control = { -1, 0, 0, 0, 0, 0,0};
 u16 i                = 0;
 
 sbit    OutR         = P3 ^ 1;//output
@@ -56,35 +57,30 @@ sbit    OutB         = P3 ^ 6;//output
 sbit    PWM          = P1 ^ 1;//output
 sbit    INMF         = P3 ^ 7;//input
 sbit    INMB         = P1 ^ 0;//input
-
+//void tm0_isr() interrupt 1 using 1
+//{
+//	 EA = 0;
+//	
+//	 EA = 1;
+//}
 void tm0_isr() interrupt 1 using 1
 {
     EA = 0;
     fTimer1ms = 1;
     if (bRight)
-        if (Control.DirectionCount > -650) {Control.DirectionCount--; OutR = 1;}
+        if (Control.RDirectionCount > -1200) {Control.LDirectionCount=0;Control.RDirectionCount--; OutR = 1;}
         else bRight = 0;
     else OutR = 0;
     if (bLeft)
-        if (Control.DirectionCount <  650) {Control.DirectionCount++; OutL = 1;}
+        if (Control.LDirectionCount <  1200) {Control.RDirectionCount=0;Control.LDirectionCount++; OutL = 1;}
         else bLeft = 0;
     else OutL = 0;
-    if (OutL)
-    {
-        SendUart(2);
-    }
-    if (OutR)
-    {
-        SendUart(3);
-    }
-
-
     if (STRPWM.PwmTime > 1)
     {
-        SendUart(STRPWM.pwm0);
+        //SendUart(STRPWM.pwm0);
         STRPWM.PwmTime--;
         STRPWM.pwm0 += STRPWM.PwmStep;
-        CCAP0H = 0xff - STRPWM.pwm0;
+        CCAP0H = STRPWM.pwm0;
     }
     UpdateTimers();
     EA = 1;
@@ -137,55 +133,55 @@ char TaskControl(void)
         }
         if (Control.ControlCommand == Skid)
         {Control.ControlCommand=-1;
-            PWMSETATOMIC(255)
+            PWMSETATOMIC(0)
             OutF = 0; OutB = 0;
         }
-        else if (0 == INMF)Control.ControlCommand = ManualControlRun | Control.Speed;
-        else if (0 == INMB)Control.ControlCommand = ManualControlBack;
-        else if (((Control.ControlCommand & (0x07 | 0x80)) == ManualControlRunL) || (Control.ControlCommand == RemoteControlRunL))
+        else if (0 == INMB)Control.ControlCommand = ManualControlRun | Control.Speed;
+        else if (0 == INMF)Control.ControlCommand = ManualControlBack;
+        if (((Control.ControlCommand & (0x07 | 0x80)) == ManualControlRunL) || (Control.ControlCommand == RemoteControlRunL))
         {
 					Control.ControlCommand &=0xb8;
             OutB = 0; OutF = 1;
-            PwmCurve(1000, 66);
+            PwmCurve(100, 66);
         }
         else if ((Control.ControlCommand & (0x07 | 0x80)) == RemoteControlRunM)
         {
 					Control.ControlCommand &=0xb8;
             OutB = 0; OutF = 1;
-            PwmCurve(2000, 96); //PwmOut(2, 32 * 3);
+            PwmCurve(200, 96); //PwmOut(2, 32 * 3);
         }
         else if ((Control.ControlCommand & (0x07 | 0x80)) == RemoteControlRunH)
         {
 					
 					Control.ControlCommand &=0xb8;
             OutB = 0; OutF = 1;
-            PwmCurve(3000, 255); //PwmOut(3, 255);
+            PwmCurve(300, 255); //PwmOut(3, 255);
         }
         else if (Control.ControlCommand == RemoteControlBack)
         {Control.ControlCommand = -1;
             OutF = 0; OutB = 1;
-            PwmCurve(2000, 78);//PwmOut(2, 26 * 3);
+            PwmCurve(200, 78);//PwmOut(2, 26 * 3);
         }
         else if (Control.ControlCommand == ManualControlRunM)
         {
-					Control.ControlCommand &=0xb8;
+					  Control.ControlCommand &=0xb8;
             OutB = 0; OutF = 1;
-            PwmCurve(3000, 96);//PwmOut(3, 32 * 3);
+            PwmCurve(300, 96);//PwmOut(3, 32 * 3);
         }
         else if (Control.ControlCommand == ManualControlRunH)
         {
 					Control.ControlCommand &=0xb8;
             OutB = 0; OutF = 1;
-            PwmCurve(5000, 255); //PwmOut(5, 255);
+            PwmCurve(500, 255); //PwmOut(5, 255);
         }
         else if (Control.ControlCommand == ManualControlBack)
         {
             Control.ControlCommand = -1;
-            if (STRPWM.pwm0 < 40)
-            {
+//            if (STRPWM.pwm0 < 40)
+//            {
                 OutF = 0; OutB = 1;
-                PwmCurve(3000, 78);//PwmOut(3, 26 * 3);
-            }
+                PwmCurve(300, 78);//PwmOut(3, 26 * 3);
+//            }
         }
         if (Control.Turning)
         {
@@ -218,10 +214,9 @@ int TaskControl2(void)
     _SS
     while (1)
     {
-
         if (st)
         {   st = 0;
-            PWMSETATOMIC(0x24);
+            PWMSETATOMIC(0);
             SendUart(STRPWM.pwm0);
             WaitX(1000);
             if (st)continue;
@@ -323,14 +318,16 @@ void main(void)
     OutF = 0;
     OutB = 0;
     PCA_config();
-    CCAP0H = 0xff - 36;
+    //CCAP0H = 0xff - 36;
+	  PWMSETATOMIC(255);
     P_SW1 |= 0x80; //P_SW1 0x80 USART ÔÚ RX P1.6 TX P1.7
     UartInit();
     for (i = 0; i < 7; i++)SendUart(*pIdRam++);
     pIdRam = ID_ADDR_RAM;
+		//Timer2Init();
     Timer0Init();
     INMF = 1;
-    INMB = 1;
+    INMB = 1;   
     for (;;)
     {
         RunTaskA(TaskControl, 0);
