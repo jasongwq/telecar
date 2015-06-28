@@ -62,11 +62,11 @@ void tm0_isr() interrupt 1 using 1
     EA = 0;
     fTimer1ms = 1;
     if (bRight)
-        if (Control.DirectionCount > -500) {Control.DirectionCount--; OutR = 1;}
+        if (Control.DirectionCount > -650) {Control.DirectionCount--; OutR = 1;}
         else bRight = 0;
     else OutR = 0;
     if (bLeft)
-        if (Control.DirectionCount <  500) {Control.DirectionCount++; OutL = 1;}
+        if (Control.DirectionCount <  650) {Control.DirectionCount++; OutL = 1;}
         else bLeft = 0;
     else OutL = 0;
     if (OutL)
