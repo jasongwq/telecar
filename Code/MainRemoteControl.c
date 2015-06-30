@@ -79,7 +79,7 @@ u8 KeyScan(void)
     if (0      == KeyT)Keyt |= RemoteControlSpeed; //调速
     if (0      == KeyR)Keyt |= Right; //右
     else if (0 == KeyL)Keyt |= Left; //左
-	if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed>0x02)?0x01:Speed); //前
+	  if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed>0x02)?0x01:Speed); //前
     else if (0 == KeyB)return RemoteControlBack;  //后
     if (0      == KeyD)return 0x82; //对频
     if (0      == KeyS)return Skid;  //刹车
