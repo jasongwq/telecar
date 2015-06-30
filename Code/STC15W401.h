@@ -14,8 +14,8 @@ typedef 	char	s8;
 typedef 	int	  s16;
 typedef 	long	s32;
 
-#define MCU_FREQ                             24000000 // 设置晶振频率
-#define MAIN_Fosc		22118400L	//定义主时钟
+#define MCU_FREQ                             12000000 // 设置晶振频率
+#define MAIN_Fosc		12000000L	//定义主时钟
 
 
 /*   interrupt vector */

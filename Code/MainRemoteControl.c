@@ -79,7 +79,7 @@ u8 KeyScan(void)
     if (0      == KeyT)Keyt |= RemoteControlSpeed; //调速
     if (0      == KeyR)Keyt |= Right; //右
     else if (0 == KeyL)Keyt |= Left; //左
-	  if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed>0x02)?0x01:Speed); //前
+    if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed > 0x02) ? 0x01 : Speed); //前
     else if (0 == KeyB)return RemoteControlBack;  //后
     if (0      == KeyD)return 0x82; //对频
     if (0      == KeyS)return Skid;  //刹车
@@ -181,25 +181,24 @@ void main(void)
         Key = KeyScan();
         if (fTimer10ms == 1)
         {
-					//unsigned char a=0x82;
+            //unsigned char a=0x82;
             fTimer10ms = 0;
             if (0 != Key)
             {
-                LastKeyNumber = Key;
                 KeyRealse = 1;
                 SleepCount = 0;
-							//SendUart(0x82==a);
                 if (Key == ProofreadingFrequency)
                 {
                     FunProofreadingFrequency();
                 }
-                if((LastKeyNumber & (0x80|RemoteControlSpeed)) != RemoteControlSpeed)RfSend(Key);
+                if (Key != RemoteControlSpeed)RfSend(Key);
             }
-            else if (KeyRealse)
+            if (((0 == Key) || (LastKeyNumber != Key)) && KeyRealse)
             {
                 KeyRealse = 0;
                 KeyCount = 0;
-                if ((LastKeyNumber & (0x80|RemoteControlSpeed)) == RemoteControlSpeed)
+                SendUart(LastKeyNumber);
+                if ((LastKeyNumber & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed)
                 {
                     switch (++Speed)
                     {   //低电平亮
@@ -209,11 +208,14 @@ void main(void)
                     case 3: LED(SETLEDSPEEDM); break;//M亮
                     default: Speed = 0; break;
                     }
+                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
+                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
+                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
                 }
-								else
-									RfSend(0xff);
+                else
+                    RfSend(0xff);
             }
-            else//Sleep
+            else if (Key == 0) //Sleep
             {
                 if (SleepCount++ > SLEEPCOUNT)
                 {
@@ -235,6 +237,7 @@ void main(void)
                     LED(SleepSave);
                 }
             }
+            LastKeyNumber = Key;
         }
     }
 }
