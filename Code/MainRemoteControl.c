@@ -15,6 +15,7 @@ u16 KeyCount       = 0;
 u16 SleepCount     = 0;
 u8 AddressFrequency[5];
 volatile u8 Key;
+u8 SleepSave;
 
 sbit    KeyT = P3 ^ 0;           //output
 sbit    KeyR = P3 ^ 1;           //output
@@ -186,6 +187,12 @@ void main(void)
             fTimer10ms = 0;
             if (0 != Key)
             {
+                if ((SleepSave & 0x01) == 0x01)
+                {
+                    SleepSave = 0;
+                    LEDF = (SleepSave >> 7) & 0x01;
+                    LED(SleepSave);
+                }
                 KeyRealse = 1;
                 SleepCount = 0;
                 if (Key == ProofreadingFrequency)
@@ -220,7 +227,6 @@ void main(void)
             {
                 if (SleepCount++ > SLEEPCOUNT)
                 {
-                    u8 SleepSave;
                     SleepCount = 0;
                     SleepSave = (SleepSave << 1) | LEDF;
                     SleepSave = (SleepSave << 1) | LEDH;
@@ -229,13 +235,14 @@ void main(void)
                     SleepSave = (SleepSave << 4);
                     LEDF = 1;
                     LED(SETLEDOFF);
-                    PCON = 0x02;//ÐÝÃß
-                    _nop_();
-                    _nop_();
-                    _nop_();
-                    _nop_();
-                    LEDF = (SleepSave >> 7) & 0x01;
-                    LED(SleepSave);
+                    SleepSave = | 0x01;
+//                    PCON = 0x02;//ÐÝÃß
+//                    _nop_();
+//                    _nop_();
+//                    _nop_();
+//                    _nop_();
+//                    LEDF = (SleepSave >> 7) & 0x01;
+//                    LED(SleepSave);
                 }
             }
             LastKeyNumber = Key;
