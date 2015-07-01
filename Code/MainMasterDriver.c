@@ -1,3 +1,4 @@
+#include "user.h"
 #include "STC15W401.h"
 #include "spi.h"
 #include <intrins.h>
@@ -7,12 +8,46 @@
 #include "sys_os.h"
 #include "pca.h"
 
+#define CONTROL_RUNING_IDLE     200
+#define CONTROL_TRUNING_IDLE    200
+#define CONTROL_NORECIVING_IDLE 200
+
+#define ID_ADDR_RAM 0xF1
+#define PWMSETATOMIC(x) do{EA = 0;STRPWM.pwm0 = (x); CCAP0H = STRPWM.pwm0; EA = 1;}while(0);
+
+struct {
+	volatile double PwmStep;
+	volatile double pwm0;
+	volatile u16 PwmTime;
+	volatile u8 TargetDutyfactor;
+} STRPWM = {0, 0, 0, 0};
+
+u8 *pIdRam = ID_ADDR_RAM;
+struct {
+	volatile u8 ControlCommand;
+	volatile u8 StopCommand;
+	volatile u8 Runing;
+	volatile u8 Turning;
+	volatile u8 Receiving;
+	volatile u8 Speed;
+	s16 RDirectionCount;
+	s16 LDirectionCount;
+} Control = { -1, 0, 0, 0, 0, 0, 0, 0};
+
+u8 i1 = 0;
+u8 i2 = 0;
+u16 i                = 0;
 volatile bit st     = 0;
 volatile bit bLeft  = 0;
 volatile bit bRight = 0;
 
-u8 i1 = 0;
-u8 i2 = 0;
+sbit    OutR         = P3 ^ 1;//output
+sbit    OutL         = P3 ^ 3;//output
+sbit    OutF         = P3 ^ 5;//output
+sbit    OutB         = P3 ^ 6;//output
+sbit    PWM          = P1 ^ 1;//output
+sbit    INMF         = P1 ^ 0;//input
+sbit    INMB         = P3 ^ 7;//input
 
 void InitLT8900(void)
 {
@@ -31,42 +66,7 @@ void InitLT8900(void)
 	SCLK = 0;
 	for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);
 }
-#define ID_ADDR_RAM 0xF1
-#define PWMSETATOMIC(x) do{EA = 0;STRPWM.pwm0 = (x); CCAP0H = STRPWM.pwm0; EA = 1;}while(0);
 
-//volatile u8 lastpwm0;
-struct {
-	volatile double PwmStep;
-	volatile double pwm0;
-	volatile u16 PwmTime;
-	volatile u8 TargetDutyfactor;
-} STRPWM = {0, 0, 0, 0};
-
-u8 *pIdRam = ID_ADDR_RAM;
-struct {
-	volatile u8 ControlCommand;
-	volatile u8 StopCommand;
-	volatile u8 Runing;
-	volatile u8 Turning;
-	volatile u8 Speed;
-	s16 RDirectionCount;
-	s16 LDirectionCount;
-} Control = { -1, 0, 0, 0, 0, 0, 0};
-u16 i                = 0;
-
-sbit    OutR         = P3 ^ 1;//output
-sbit    OutL         = P3 ^ 3;//output
-sbit    OutF         = P3 ^ 5;//output
-sbit    OutB         = P3 ^ 6;//output
-sbit    PWM          = P1 ^ 1;//output
-sbit    INMF         = P1 ^ 0;//input
-sbit    INMB         = P3 ^ 7;//input
-//void tm0_isr() interrupt 1 using 1
-//{
-//   EA = 0;
-//
-//   EA = 1;
-//}
 void tm0_isr() interrupt 1 using 1
 {
 	EA = 0;
@@ -96,33 +96,10 @@ void tm0_isr() interrupt 1 using 1
 			CCAP0H = STRPWM.pwm0;
 		}
 	}
-//	if(i1++>20)
-//	{
-//		i1=0;
-//		STRPWM.pwm0=i2++;
-//		CCAP0H = STRPWM.pwm0;
-//	}
 	UpdateTimers();
 	EA = 1;
 }
 
-
-#define Left                 0x10 //43
-#define Right                0x18 //43
-#define Stop                 0x84
-#define Skid                 0x80 //70
-#define RemoteControlSpeed   0x20 //5
-#define RemoteControlRun     0x04 //2
-#define RemoteControlRunH    0x06 //210
-#define RemoteControlRunM    0x05 //210
-#define RemoteControlRunL    0x04 //210
-#define RemoteControlBack    0x81 //70
-#define ManualControlRun     0x40 //6
-#define ManualControlRunH    0x42 //610
-#define ManualControlRunM    0x41 //610
-#define ManualControlRunL    0x40 //610
-#define ManualControlBack    0x83 //710
-#define ProofreadingFrequency 0x82//710
 void PwmCurve(u16 time, u8 TargetDutyfactor)
 {
 	s16 Dvalue;
@@ -142,13 +119,13 @@ char TaskControl(void)
 	while (1)
 	{
 		WaitX(1);
-		if ((Control.ControlCommand & (0x18 | 0x80)) == Left)
+		if ((Control.ControlCommand & MaskLeft) == Left)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
 			EA = 0; bLeft = 1; EA = 1;
 		}
-		else if  ((Control.ControlCommand & (0x18 | 0x80)) == Right)
+		else if  ((Control.ControlCommand & MaskRight) == Right)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
@@ -159,57 +136,68 @@ char TaskControl(void)
 			//PWMSETATOMIC(0)
 			OutF = 0; OutB = 0;
 		}
-		else if (0 == INMF) {Control.ControlCommand = ManualControlRun | Control.Speed;}
-		else if (0 == INMB) {Control.ControlCommand = ManualControlBack;}
-		if (((Control.ControlCommand & (0x07 | 0xC0)) == ManualControlRunL) || (Control.ControlCommand == RemoteControlRunL))
+		else if (Control.NoReceiving < CONTROL_NORECIVING_IDLE)
 		{
-			Control.ControlCommand &= 0xb8;
-			OutB = 0; OutF = 1;
-			SendUart(1);
-			PwmCurve(100, 66);
+			if (0 == INMF) {Control.ControlCommand = ManualControlRun | Control.Speed;}
+			else if (0 == INMB) {Control.ControlCommand = ManualControlBack;}
 		}
-		else if ((Control.ControlCommand & (0x07 | 0xC0)) == RemoteControlRunM)
+		if (((Control.ControlCommand & MaskRemoteControlRunL) == ManualControlRunL) || (Control.ControlCommand == RemoteControlRunL))
+		{	if (0 == OutB) {
+				Control.ControlCommand &= 0xb8;
+				OutB = 0; OutF = 1;
+				SendUart(1);
+				PwmCurve(100, 66);
+			}
+		}
+		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunM)
+		{	if (0 == OutB) {
+				Control.ControlCommand &= 0xb8;
+				OutB = 0; OutF = 1;
+				PwmCurve(200, 96); //PwmOut(2, 32 * 3);
+			}
+		}
+		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunH)
+		{	if (0 == OutB) {
+				Control.ControlCommand &= 0xb8;
+				OutB = 0; OutF = 1;
+				PwmCurve(300, 255); //PwmOut(3, 255);
+			}
+		}
+		else if ((Control.ControlCommand & MaskRemoteControlBack) == RemoteControlBack)
 		{
-			Control.ControlCommand &= 0xb8;
-			OutB = 0; OutF = 1;
-			PwmCurve(200, 96); //PwmOut(2, 32 * 3);
-		}
-		else if ((Control.ControlCommand & (0x07 | 0xC0)) == RemoteControlRunH)
-		{
-
-			Control.ControlCommand &= 0xb8;
-			OutB = 0; OutF = 1;
-			PwmCurve(300, 255); //PwmOut(3, 255);
-		}
-		else if (Control.ControlCommand == RemoteControlBack)
-		{	Control.ControlCommand = -1;
-			OutF = 0; OutB = 1;
-			PwmCurve(200, 78);//PwmOut(2, 26 * 3);
+			if (0 == OutF) {
+				Control.ControlCommand = -1;
+				OutF = 0; OutB = 1;
+				PwmCurve(200, 78);//PwmOut(2, 26 * 3);
+			}
 		}
 		else if (Control.ControlCommand == ManualControlRunM)
 		{
-			Control.ControlCommand &= 0xb8;
-			OutB = 0; OutF = 1;
-			SendUart(2);
-			PwmCurve(300, 96);//PwmOut(3, 32 * 3);
+			if (0 == OutB) {
+				Control.ControlCommand &= 0xb8;
+				OutB = 0; OutF = 1;
+				PwmCurve(300, 96);//PwmOut(3, 32 * 3);
+			}
 		}
 		else if (Control.ControlCommand == ManualControlRunH)
 		{
-			Control.ControlCommand &= 0xb8;
-			OutB = 0; OutF = 1;
-			SendUart(3);
-			PwmCurve(500, 255); //PwmOut(5, 255);
+			if (0 == OutB) {
+				Control.ControlCommand &= 0xb8;
+				OutB = 0; OutF = 1;
+				PwmCurve(500, 255); //PwmOut(5, 255);
+			}
 		}
 		else if (Control.ControlCommand == ManualControlBack)
 		{
-			Control.ControlCommand = -1;
-			OutF = 0; OutB = 1;
-			SendUart(0);
-			PwmCurve(300, 78);//PwmOut(3, 26 * 3);
+			if (0 == OutF) {
+				Control.ControlCommand = -1;
+				OutF = 0; OutB = 1;
+				PwmCurve(300, 78);//PwmOut(3, 26 * 3);
+			}
 		}
 		if (Control.Turning)
 		{
-			if (Control.Turning++ > 200)
+			if (Control.Turning++ > CONTROL_RUNING_IDLE)
 			{
 				EA = 0;
 				bLeft  = 0;
@@ -221,7 +209,7 @@ char TaskControl(void)
 		if (Control.Runing)
 		{
 			Control.Runing++;
-			if (Control.Runing > 200)
+			if (Control.Runing > CONTROL_TRUNING_IDLE)
 			{
 				st = 1;
 				EA = 0;
@@ -233,16 +221,19 @@ char TaskControl(void)
 	}
 	_EE
 }
-int TaskControl2(void)
+int TaskControl2(void)//stops slowly
 {
 	_SS
 	while (1)
 	{
 		if (st)
-		{	st = 0;
+		{
+			st = 0;
 			PWMSETATOMIC(0);
-			//SendUart(65);
-			WaitX(1000);
+			if ( 1 == OutB)
+				WaitX(800);
+			else
+				WaitX(1000);
 			if (st)continue;
 			if (Control.Runing == 0) {OutF = 0; OutB = 0;}
 		} WaitX(1);
@@ -259,7 +250,7 @@ int TaskRf(void)
 	spiWriteReg(52, 0x00, 0x80);
 	spiWriteReg(7, 0x00, 0xB0);
 	delayMs(5);
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < 10; i++)//Calibration address code
 	{
 		spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
 		spiWriteReg(52, 0x80, 0x00);
@@ -271,7 +262,7 @@ int TaskRf(void)
 		WaitX(20);
 	}
 
-	spiWriteReg(36, *(pIdRam + 0), *(pIdRam + 1));
+	spiWriteReg(36, *(pIdRam + 0), *(pIdRam + 1));//Modify the address code
 	spiWriteReg(38, *(pIdRam + 2), *(pIdRam + 3));
 	spiWriteReg(39, 0xbd, *(pIdRam + 6));
 	spiWriteReg(52, 0x00, 0x80);
@@ -281,21 +272,21 @@ int TaskRf(void)
 	{
 		static unsigned char lasti;
 		u8 Data;
-		u8 test;
+		u8 SerialNumber;
 		WaitX(2);
 		spiReadreg(48);
-		if (0x40 == (RegL & 0x40))
+		if (0x40 == (RegL & 0x40))//Determine whether received data
 		{
 			spiReadreg(48);
-			if (0x00 == (RegH & 0x80))
+			if (0x00 == (RegH & 0x80))//Verify the CRC
 			{
-				spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;
-				if ((FIFONUM - 1) == RfFifo[0])
+				Control.Receiving = 0;
+				spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;//Read the data
+				if ((FIFONUM - 1) == RfFifo[0])//Check the FIFO size
 				{
-					spiReadreg(50);
-					RfFifo[2]  = RegH; RfFifo[3] = RegL;
-					test = (u8)((u8)RfFifo[1] - (u8)lasti) > 10 ? (lasti - RfFifo[1]) : (RfFifo[1] - lasti);
-					if (1 == test)
+					spiReadreg(50); RfFifo[2]  = RegH; RfFifo[3] = RegL;//Read the data
+					SerialNumber = (u8)((u8)RfFifo[1] - (u8)lasti) > 10 ? (lasti - RfFifo[1]) : (RfFifo[1] - lasti);//Check the serial number
+					if (1 == SerialNumber)
 					{
 						Data = RfFifo[3];
 					}
@@ -303,31 +294,37 @@ int TaskRf(void)
 					{
 						Data = RfFifo[2];
 						if (Data != 0xff)
-						{	Control.ControlCommand = Data ;
-							if (((Data  & 0x84) == 0x04) || ((Data  & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed))
+						{
+							Control.ControlCommand = Data ;
+							if (((Data  & 0x84) == 0x04) || ((Data  & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed))//If there is a speed data
 							{
-								Control.Speed = (Data & 0x03);
+								if ((Data & 0x03) < 3)
+									Control.Speed = (Data & 0x03);
 							}
-							//SendUart(Control.ControlCommand);
 							WaitX(2);
+							Data = RfFifo[3];
 						}
-						Data = RfFifo[3];
+
 					}
 					lasti = RfFifo[1];
 					if (Data != 0xff)
 					{
 						Control.ControlCommand = Data ;
-						if (((Data  & 0x84) == 0x04) || ((Data  & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed))
+						if (((Data  & 0x84) == 0x04) || ((Data  & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed))//If there is a speed data
 						{
-							Control.Speed = (Data & 0x03);
+							if ((Data & 0x03) < 3)
+								Control.Speed = (Data & 0x03);
 						}
-						//SendUart(Control.ControlCommand);
 					}
 				}
 			}
 			spiWriteReg(7, 0x00, 0x30);
 			spiWriteReg(52, 0x80, 0x80);
 			spiWriteReg(7, 0x00, 0xB0);
+		}
+		else if (Control.NoReceiving < CONTROL_TRUNING_IDLE)
+		{
+			Control.NoReceiving++;
 		}
 	}
 	_EE
@@ -343,16 +340,17 @@ void main(void)
 	OutF = 0;
 	OutB = 0;
 
-	PCA_config(); Timer0Init();
+	PCA_config(); //PWM
+	Timer0Init(); //定时器（1ms 时间基数）
 	//CCAP0H = 0xff;
-	for (i = 0; i < 200; i++)
-	{
-		PWMSETATOMIC(it++);
-		delayMs(20);
-	}
+	// for (i = 0; i < 200; i++)
+	// {
+	// 	PWMSETATOMIC(it++);
+	// 	delayMs(20);
+	// }
 	PWMSETATOMIC(0);
 
-	P_SW1 |= 0x80; //P_SW1 0x80 USART ÔÚ RX P1.6 TX P1.7
+	P_SW1 |= 0x80; //P_SW1 0x80 USART RE RX P1.6 TX P1.7
 	UartInit();
 	for (i = 0; i < 7; i++)SendUart(*pIdRam++);
 	pIdRam = ID_ADDR_RAM;

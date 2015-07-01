@@ -1,3 +1,4 @@
+#include "user.h"
 #include "STC15W401.h"
 #include "spi.h"
 #include <intrins.h>
@@ -28,16 +29,16 @@ sbit    LEDH = P5 ^ 5;           //output
 sbit    LEDM = P5 ^ 4;           //output
 sbit    LEDL = P1 ^ 7;           //output
 
-#define Left                 0x10
-#define Right                0x18
-#define Skid                 0x80
-#define RemoteControlSpeed   0x20
-#define RemoteControlRun     0x04
-#define RemoteControlRunH    0x06
-#define RemoteControlRunM    0x05
-#define RemoteControlRunL    0x04
-#define RemoteControlBack    0x81
-#define ProofreadingFrequency 0x82
+// #define Left                 0x10
+// #define Right                0x18
+// #define Skid                 0x80
+// #define RemoteControlSpeed   0x20
+// #define RemoteControlRun     0x04
+// #define RemoteControlRunH    0x06
+// #define RemoteControlRunM    0x05
+// #define RemoteControlRunL    0x04
+// #define RemoteControlBack    0x81
+// #define ProofreadingFrequency 0x82
 
 
 #define SETLEDH 0x40
@@ -80,7 +81,7 @@ u8 KeyScan(void)
     if (0      == KeyR)Keyt |= Right; //右
     else if (0 == KeyL)Keyt |= Left; //左
     if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed > 0x02) ? 0x01 : Speed); //前
-    else if (0 == KeyB)return RemoteControlBack;  //后
+    else if (0 == KeyB)Keyt |= RemoteControlBack;  //后
     if (0      == KeyD)return 0x82; //对频
     if (0      == KeyS)return Skid;  //刹车
     return Keyt;
@@ -191,7 +192,10 @@ void main(void)
                 {
                     FunProofreadingFrequency();
                 }
-                if (Key != RemoteControlSpeed)RfSend(Key);
+                if (Key == RemoteControlSpeed)
+                    RfSend((Speed + 1) > 2 ? (3 - Speed) : (Speed + 1));
+                else
+                    RfSend(Key);
             }
             if (((0 == Key) || (LastKeyNumber != Key)) && KeyRealse)
             {
@@ -208,9 +212,6 @@ void main(void)
                     case 3: LED(SETLEDSPEEDM); break;//M亮
                     default: Speed = 0; break;
                     }
-                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
-                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
-                    RfSend(((Speed > 0x02) ? 0x01 : Speed) | RemoteControlSpeed);
                 }
                 else
                     RfSend(0xff);
