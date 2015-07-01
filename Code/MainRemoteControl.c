@@ -143,7 +143,7 @@ void RfSend(u8 Data)
 {
     static unsigned char i = 0;
     static unsigned char lastdata = 0;
-
+//SendUart(Data);
     spiWriteReg(7, 0x00, 0x30);             // 2402 + 48 = 2.45GHz
     spiWriteReg(52, 0x80, 0x00);            // Çå¿Õ·¢ËÍ»º´æÇø
     // ·¢ËÍ1¸ö×Ö½Ú
@@ -155,8 +155,8 @@ void RfSend(u8 Data)
 #define SLEEPCOUNT 1400
 void main(void)
 {
-    UartInit();
-    SendUart(0x11);
+    //UartInit();
+    //SendUart(0x11);
 
     Timer0Init();
     InitLT8900();
@@ -180,62 +180,71 @@ void main(void)
     EA = 1;
     while (1)
     {
-        Key = KeyScan();
-        if (fTimer10ms == 1)
+        if ((SleepSave & 0x01) == 0x01)
         {
-            //unsigned char a=0x82;
-            fTimer10ms = 0;
-            if (0 != Key)
+            if (fTimer10ms == 1)
             {
-                if ((SleepSave & 0x01) == 0x01)
+                Key = KeyScan();
+                if (0 != Key)
                 {
                     SleepSave = 0;
                     LEDF = (SleepSave >> 7) & 0x01;
                     LED(SleepSave);
                 }
-                KeyRealse = 1;
-                SleepCount = 0;
-                if (Key == ProofreadingFrequency)
-                {
-                    FunProofreadingFrequency();
-                }
-                if (Key == RemoteControlSpeed)
-                    RfSend((Speed + 1) > 2 ? (3 - Speed) : (Speed + 1));
-                else
-                    RfSend(Key);
             }
-            if (((0 == Key) || (LastKeyNumber != Key)) && KeyRealse)
+        }
+        else
+        {
+            Key = KeyScan();
+            if (fTimer10ms == 1)
             {
-                KeyRealse = 0;
-                KeyCount = 0;
-                SendUart(LastKeyNumber);
-                if ((LastKeyNumber & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed)
+                //unsigned char a=0x82;
+                fTimer10ms = 0;
+                if (0 != Key)
                 {
-                    switch (++Speed)
-                    {   //µÍµçÆ½ÁÁ
-                    case 4: Speed = 0; LED(SETLEDSPEEDL); break;//LÁÁ
-                    case 1: LED(SETLEDSPEEDM); break;//MÁÁ
-                    case 2: LED(SETLEDSPEEDH); break;//HÁÁ
-                    case 3: LED(SETLEDSPEEDM); break;//MÁÁ
-                    default: Speed = 0; break;
-                    }
-                }
-                else
-                    RfSend(0xff);
-            }
-            else if (Key == 0) //Sleep
-            {
-                if (SleepCount++ > SLEEPCOUNT)
-                {
+                    KeyRealse = 1;
                     SleepCount = 0;
-                    SleepSave = (SleepSave << 1) | LEDF;
-                    SleepSave = (SleepSave << 1) | LEDH;
-                    SleepSave = (SleepSave << 1) | LEDM;
-                    SleepSave = (SleepSave << 1) | LEDL;
-                    SleepSave = (SleepSave << 4);
-                    LEDF = 1;
-                    LED(SETLEDOFF);
-                    SleepSave = | 0x01;
+                    if (Key == ProofreadingFrequency)
+                    {
+                        FunProofreadingFrequency();
+                    }
+                    if (Key == RemoteControlSpeed)
+                        RfSend((Speed + 1) > 2 ? (3 - Speed) : (Speed + 1));
+                    else
+                        RfSend(Key);
+                }
+                if (((0 == Key) || (LastKeyNumber != Key)) && KeyRealse)
+                {
+                    KeyRealse = 0;
+                    KeyCount = 0;
+                    //SendUart(LastKeyNumber);
+                    if ((LastKeyNumber & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed)
+                    {
+                        switch (++Speed)
+                        {   //µÍµçÆ½ÁÁ
+                        case 4: Speed = 0; LED(SETLEDSPEEDL); break;//LÁÁ
+                        case 1: LED(SETLEDSPEEDM); break;//MÁÁ
+                        case 2: LED(SETLEDSPEEDH); break;//HÁÁ
+                        case 3: LED(SETLEDSPEEDM); break;//MÁÁ
+                        default: Speed = 0; break;
+                        }
+                    }
+                    else
+                        RfSend(0xff);
+                }
+                else if (Key == 0) //Sleep
+                {
+                    if (SleepCount++ > SLEEPCOUNT)
+                    {
+                        SleepCount = 0;
+                        SleepSave = (SleepSave << 1) | LEDF;
+                        SleepSave = (SleepSave << 1) | LEDH;
+                        SleepSave = (SleepSave << 1) | LEDM;
+                        SleepSave = (SleepSave << 1) | LEDL;
+                        SleepSave = (SleepSave << 4);
+                        LEDF = 1;
+                        LED(SETLEDOFF);
+                        SleepSave |= 0x01;
 //                    PCON = 0x02;//ÐÝÃß
 //                    _nop_();
 //                    _nop_();
@@ -243,9 +252,10 @@ void main(void)
 //                    _nop_();
 //                    LEDF = (SleepSave >> 7) & 0x01;
 //                    LED(SleepSave);
+                    }
                 }
+                LastKeyNumber = Key;
             }
-            LastKeyNumber = Key;
         }
     }
 }

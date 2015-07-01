@@ -28,7 +28,7 @@ struct {
 	volatile u8 StopCommand;
 	volatile u8 Runing;
 	volatile u8 Turning;
-	volatile u8 Receiving;
+	volatile u8 NoReceiving;
 	volatile u8 Speed;
 	s16 RDirectionCount;
 	s16 LDirectionCount;
@@ -123,20 +123,20 @@ char TaskControl(void)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
-			EA = 0; bLeft = 1; EA = 1;
+			EA = 0; bLeft = 1;bRight = 0; EA = 1;
 		}
-		else if  ((Control.ControlCommand & MaskRight) == Right)
+		else if ((Control.ControlCommand & MaskRight) == Right)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
-			EA = 0; bRight = 1; EA = 1;
+			EA = 0; bLeft = 0;bRight = 1; EA = 1;
 		}
 		if (Control.ControlCommand == Skid)
 		{	Control.ControlCommand = -1;
 			//PWMSETATOMIC(0)
 			OutF = 0; OutB = 0;
 		}
-		else if (Control.NoReceiving < CONTROL_NORECIVING_IDLE)
+		else if (Control.NoReceiving > CONTROL_NORECIVING_IDLE)
 		{
 			if (0 == INMF) {Control.ControlCommand = ManualControlRun | Control.Speed;}
 			else if (0 == INMB) {Control.ControlCommand = ManualControlBack;}
@@ -145,7 +145,7 @@ char TaskControl(void)
 		{	if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				SendUart(1);
+				//SendUart(1);
 				PwmCurve(100, 66);
 			}
 		}
@@ -197,7 +197,8 @@ char TaskControl(void)
 		}
 		if (Control.Turning)
 		{
-			if (Control.Turning++ > CONTROL_RUNING_IDLE)
+			Control.Turning++;
+			if (Control.Turning > CONTROL_TRUNING_IDLE)
 			{
 				EA = 0;
 				bLeft  = 0;
@@ -209,7 +210,7 @@ char TaskControl(void)
 		if (Control.Runing)
 		{
 			Control.Runing++;
-			if (Control.Runing > CONTROL_TRUNING_IDLE)
+			if (Control.Runing > CONTROL_RUNING_IDLE)
 			{
 				st = 1;
 				EA = 0;
@@ -230,10 +231,14 @@ int TaskControl2(void)//stops slowly
 		{
 			st = 0;
 			PWMSETATOMIC(0);
-			if ( 1 == OutB)
+			if (1 == OutB)
+			{
 				WaitX(800);
+			}
 			else
+			{
 				WaitX(1000);
+			}
 			if (st)continue;
 			if (Control.Runing == 0) {OutF = 0; OutB = 0;}
 		} WaitX(1);
@@ -280,7 +285,7 @@ int TaskRf(void)
 			spiReadreg(48);
 			if (0x00 == (RegH & 0x80))//Verify the CRC
 			{
-				Control.Receiving = 0;
+				Control.NoReceiving = 0;
 				spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;//Read the data
 				if ((FIFONUM - 1) == RfFifo[0])//Check the FIFO size
 				{
@@ -304,7 +309,6 @@ int TaskRf(void)
 							WaitX(2);
 							Data = RfFifo[3];
 						}
-
 					}
 					lasti = RfFifo[1];
 					if (Data != 0xff)
@@ -316,13 +320,18 @@ int TaskRf(void)
 								Control.Speed = (Data & 0x03);
 						}
 					}
+					SendUart(Control.ControlCommand);
+					SendUart(Control.ControlCommand);
+					SendUart(Control.ControlCommand);
+					
+					
 				}
 			}
 			spiWriteReg(7, 0x00, 0x30);
 			spiWriteReg(52, 0x80, 0x80);
 			spiWriteReg(7, 0x00, 0xB0);
 		}
-		else if (Control.NoReceiving < CONTROL_TRUNING_IDLE)
+		else if (Control.NoReceiving <= CONTROL_TRUNING_IDLE)
 		{
 			Control.NoReceiving++;
 		}

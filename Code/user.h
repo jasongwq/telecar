@@ -1,7 +1,7 @@
 #define Left                         0x10 //43  
 #define MaskLeft                   ( 0x18 | 0x80) //43  
 #define Right                        0x18 //43
-#define MaskRight                    0x18 //43  
+#define MaskRight                  ( 0x18 | 0x80) //43  
 #define Stop                         0x84
 #define MaskStop                     0x84
 #define Skid                         0x80 //70  
@@ -17,7 +17,7 @@
 #define RemoteControlRunL            0x04 //210 
 #define MaskRemoteControlRunL     (  0x07 | 0xC0) //210 
 #define RemoteControlBack            0x03 //70  
-#define MaskRemoteControlBack        ( 0x07 | 0x80) //70  
+#define MaskRemoteControlBack     (  0x07 | 0x80) //70  
 #define ManualControlRun             0x40 //6   
 #define MaskManualControlRun         0x40 //6   
 #define ManualControlRunH            0x42 //610 
