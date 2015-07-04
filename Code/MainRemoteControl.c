@@ -152,7 +152,7 @@ void RfSend(u8 Data)
     spiWriteReg(7, 0x01, 0x30);             // 允许发射使能
     lastdata = Data;
 }
-#define SLEEPCOUNT 1400
+#define SLEEPCOUNT 700
 void main(void)
 {
     //UartInit();

@@ -4,13 +4,13 @@
 #include <intrins.h>
 #include "delay.h"
 #include "lt8910.h"
-#include "usart.h"
+//#include "usart.h"
 #include "sys_os.h"
 #include "pca.h"
 
-#define CONTROL_RUNING_IDLE     200
-#define CONTROL_TRUNING_IDLE    200
-#define CONTROL_NORECIVING_IDLE 200
+#define CONTROL_RUNING_IDLE     (400)
+#define CONTROL_TRUNING_IDLE    (80)
+#define CONTROL_NORECIVING_IDLE (1000)
 
 #define ID_ADDR_RAM 0xF1
 #define PWMSETATOMIC(x) do{EA = 0;STRPWM.pwm0 = (x); CCAP0H = STRPWM.pwm0; EA = 1;}while(0);
@@ -26,15 +26,16 @@ u8 *pIdRam = ID_ADDR_RAM;
 struct {
 	volatile u8 ControlCommand;
 	volatile u8 StopCommand;
-	volatile u8 Runing;
-	volatile u8 Turning;
-	volatile u8 NoReceiving;
+	volatile u16 Runing;
+	volatile u16 Turning;
+	volatile u16 NoReceiving;
 	volatile u8 Speed;
 	s16 RDirectionCount;
 	s16 LDirectionCount;
 } Control = { -1, 0, 0, 0, 0, 0, 0, 0};
 
-u8 i1 = 0;
+u16 i1 = 0;
+
 u8 i2 = 0;
 u16 i                = 0;
 volatile bit st     = 0;
@@ -70,6 +71,9 @@ void InitLT8900(void)
 void tm0_isr() interrupt 1 using 1
 {
 	EA = 0;
+	if(++i2>30)
+	{
+		i2 = 0;
 	fTimer1ms = 1;
 	if (bRight)
 		if (Control.RDirectionCount > -1200) {Control.LDirectionCount = 0; Control.RDirectionCount--; OutR = 1;}
@@ -79,7 +83,9 @@ void tm0_isr() interrupt 1 using 1
 		if (Control.LDirectionCount <  1200) {Control.RDirectionCount = 0; Control.LDirectionCount++; OutL = 1;}
 		else bLeft = 0;
 	else OutL = 0;
-	if (i1++ > 10)
+	UpdateTimers();
+	}
+	if (++i1 > 311)
 	{
 		i1 = 0;
 		if (STRPWM.PwmTime > 1)
@@ -96,7 +102,7 @@ void tm0_isr() interrupt 1 using 1
 			CCAP0H = STRPWM.pwm0;
 		}
 	}
-	UpdateTimers();
+	
 	EA = 1;
 }
 
@@ -146,14 +152,14 @@ char TaskControl(void)
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
 				//SendUart(1);
-				PwmCurve(100, 66);
+				PwmCurve(100, 69);
 			}
 		}
 		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunM)
 		{	if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(200, 96); //PwmOut(2, 32 * 3);
+				PwmCurve(200, 100); //PwmOut(2, 32 * 3);
 			}
 		}
 		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunH)
@@ -168,7 +174,7 @@ char TaskControl(void)
 			if (0 == OutF) {
 				Control.ControlCommand = -1;
 				OutF = 0; OutB = 1;
-				PwmCurve(200, 78);//PwmOut(2, 26 * 3);
+				PwmCurve(200, 81);//PwmOut(2, 26 * 3);
 			}
 		}
 		else if (Control.ControlCommand == ManualControlRunM)
@@ -176,7 +182,7 @@ char TaskControl(void)
 			if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(300, 96);//PwmOut(3, 32 * 3);
+				PwmCurve(300, 100);//PwmOut(3, 32 * 3);
 			}
 		}
 		else if (Control.ControlCommand == ManualControlRunH)
@@ -320,9 +326,9 @@ int TaskRf(void)
 								Control.Speed = (Data & 0x03);
 						}
 					}
-					SendUart(Control.ControlCommand);
-					SendUart(Control.ControlCommand);
-					SendUart(Control.ControlCommand);
+//					SendUart(Control.ControlCommand);
+//					SendUart(Control.ControlCommand);
+//					SendUart(Control.ControlCommand);
 					
 					
 				}
@@ -331,7 +337,7 @@ int TaskRf(void)
 			spiWriteReg(52, 0x80, 0x80);
 			spiWriteReg(7, 0x00, 0xB0);
 		}
-		else if (Control.NoReceiving <= CONTROL_TRUNING_IDLE)
+		else if (Control.NoReceiving <= CONTROL_NORECIVING_IDLE)
 		{
 			Control.NoReceiving++;
 		}
@@ -352,16 +358,17 @@ void main(void)
 	PCA_config(); //PWM
 	Timer0Init(); //定时器（1ms 时间基数）
 	//CCAP0H = 0xff;
-	// for (i = 0; i < 200; i++)
+	// for (i = 0; i < 200; i++)AAAAAAAAAAAAAAA
 	// {
 	// 	PWMSETATOMIC(it++);
 	// 	delayMs(20);
 	// }
+	delayMs(500);
 	PWMSETATOMIC(0);
 
 	P_SW1 |= 0x80; //P_SW1 0x80 USART RE RX P1.6 TX P1.7
-	UartInit();
-	for (i = 0; i < 7; i++)SendUart(*pIdRam++);
+//	UartInit();
+//	for (i = 0; i < 7; i++)SendUart(*pIdRam++);
 	pIdRam = ID_ADDR_RAM;
 	//Timer2Init();
 
