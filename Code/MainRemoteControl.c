@@ -4,7 +4,7 @@
 #include <intrins.h>
 #include "delay.h"
 #include "eeprom.h"
-#include "usart.h"
+//#include "usart.h"
 #include "lt8910.h"
 
 bit fTimer10ms     = 0;
@@ -87,9 +87,7 @@ u8 KeyScan(void)
     if (0      == KeyS)return Skid;  //刹车
     return Keyt;
 }
-void exint0() interrupt 0
-{
-}
+
 void SetLT9010Address(void)
 {
     spiWriteReg(39, 0xbd, AddressFrequency[0]);
@@ -153,12 +151,63 @@ void RfSend(u8 Data)
     lastdata = Data;
 }
 #define SLEEPCOUNT 700
+
+void Timer0InitS(void)		//1毫秒@12.000MHz
+{
+	AUXR |= 0x80;		//定时器时钟1T模式
+	TMOD &= 0xF0;		//设置定时器模式
+	TL0 = 0x20;		//设置定时初值
+	TH0 = 0xD1;		//设置定时初值
+    TF0 = 0;        //清除TF0标志
+    TR0 = 1;        //定时器0开始计时
+    ET0 = 1;        //使能定时器0中断
+    EA = 1;
+}
+#define CCP_S0 0x10
+#define CCP_S1 0x20
+
 void main(void)
 {
     //UartInit();
     //SendUart(0x11);
+    {
+        {
+            IT0 = 1;
+            EX0 = 1;
+        }//INT0
+        {
+            IT1 = 1;
+            EX1 = 1;
+        }//INT1
+        {
+            INT_CLKO |= 0x40;
+        }//INT4
+        {
+            IE2 |= 0x04;
+        }//T2
+        {
+            ACC = P_SW1;
+            ACC &= ~(CCP_S0 | CCP_S1);
+            P_SW1 = ACC;//S0 S0
 
-    Timer0Init();
+            CCON = 0;
+            CL = 0;
+            CH = 0;
+            CMOD = 0x08;
+
+            CCAP0L = 0;
+            CCAP0H = 0;
+            CCAPM0 = 0x11;
+
+            CCAP1L = 0;
+            CCAP1H = 0;
+            CCAPM1 = 0x11;
+
+            CR = 1;
+        }
+    }
+
+    Timer0InitS();
     InitLT8900();
     EEPROM_read_n(0x0000, AddressFrequency, 5);
     SetLT9010Address();
@@ -180,20 +229,20 @@ void main(void)
     EA = 1;
     while (1)
     {
-        if ((SleepSave & 0x01) == 0x01)
-        {
-            if (fTimer10ms == 1)
-            {
-                Key = KeyScan();
-                if (0 != Key)
-                {
-                    SleepSave = 0;
-                    LEDF = (SleepSave >> 7) & 0x01;
-                    LED(SleepSave);
-                }
-            }
-        }
-        else
+//        if ((SleepSave & 0x01) == 0x01)//模拟休眠
+//        {
+//            if (fTimer10ms == 1)
+//            {
+//                Key = KeyScan();
+//                if (0 != Key)
+//                {
+//                    SleepSave = 0;
+//                    LEDF = (SleepSave >> 7) & 0x01;
+//                    LED(SleepSave);
+//                }
+//            }
+//        }
+//        else
         {
             Key = KeyScan();
             if (fTimer10ms == 1)
@@ -244,14 +293,17 @@ void main(void)
                         SleepSave = (SleepSave << 4);
                         LEDF = 1;
                         LED(SETLEDOFF);
+#if 0
                         SleepSave |= 0x01;
-//                    PCON = 0x02;//休眠
-//                    _nop_();
-//                    _nop_();
-//                    _nop_();
-//                    _nop_();
-//                    LEDF = (SleepSave >> 7) & 0x01;
-//                    LED(SleepSave);
+#else
+                        PCON = 0x02;//休眠
+                        _nop_();
+                        _nop_();
+                        _nop_();
+                        _nop_();
+                        LEDF = (SleepSave >> 7) & 0x01;
+                        LED(SleepSave);
+#endif
                     }
                 }
                 LastKeyNumber = Key;
@@ -259,12 +311,29 @@ void main(void)
         }
     }
 }
+void exint0() interrupt 0
+{
+}
+void exint1() interrupt 2
+{
+}
+void exint4() interrupt 16
+{
+}
+void pca_isr() interrupt 7
+{
+}
+
+#define MS_COUNT 1//20
+void tm2_isr() interrupt 12
+{
+}
 void tm0_isr() interrupt 1 using 1
 {
     static volatile int t = 0;
     EA = 0;
     fTimer1ms = 1;
-    if (t++ > 20)
+    if (t++ > MS_COUNT)
     {
         t = 0;
         fTimer10ms = 1;
