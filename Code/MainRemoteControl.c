@@ -49,7 +49,7 @@ sbit    LEDL = P1 ^ 7;           //output
 #define SETLEDSPEEDM ((0x70)^(SETLEDM|SETLEDL))
 #define SETLEDSPEEDL ((0x70)^(SETLEDL))
 #define SETLEDOFF ((0x70)^(0x00))
-
+#define SOFTSLEEP 0
 
 void InitLT8900(void)
 {
@@ -78,13 +78,13 @@ void LED(u8 Stata)
 u8 KeyScan(void)
 {
     u8 Keyt = 0;
-    if (0      == KeyT)Keyt |= RemoteControlSpeed; //µ˜ÀŸ
-    if (0      == KeyR)Keyt |= Right; //”“
-    else if (0 == KeyL)Keyt |= Left; //◊Û
-    if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed > 0x02) ? 0x01 : Speed); //«∞
-    else if (0 == KeyB)Keyt |= RemoteControlBack;  //∫Û
-    if (0      == KeyD)return 0x82; //∂‘∆µ
-    if (0      == KeyS)return Skid;  //…≤≥µ
+    if (0      == KeyT)Keyt |= RemoteControlSpeed; //Ë∞ÉÈÄü
+    if (0      == KeyR)Keyt |= Right; //Âè≥
+    else if (0 == KeyL)Keyt |= Left; //Â∑¶
+    if (0      == KeyF)Keyt |= RemoteControlRun | ((Speed > 0x02) ? 0x01 : Speed); //Ââç
+    else if (0 == KeyB)Keyt |= RemoteControlBack;  //Âêé
+    if (0      == KeyD)return 0x82; //ÂØπÈ¢ë
+    if (0      == KeyS)return Skid;  //ÂàπËΩ¶
     return Keyt;
 }
 
@@ -94,7 +94,7 @@ void SetLT9010Address(void)
     spiWriteReg(36, AddressFrequency[1], AddressFrequency[2]);
     spiWriteReg(38, AddressFrequency[3], AddressFrequency[4]);
 }
-void FunProofreadingFrequency(void)//∂‘∆µ
+void FunProofreadingFrequency(void)//ÂØπÈ¢ë
 {
     KeyCount++; //SendUart(KeyCount);
     if (KeyCount > 100)
@@ -105,8 +105,8 @@ void FunProofreadingFrequency(void)//∂‘∆µ
 
         spiWriteReg(7, 0x00, 0x30);
         delayMs(3);
-        spiWriteReg(52, 0x00, 0x80);            // «ÂΩ” ’ª∫¥Ê«¯
-        spiWriteReg(7, 0x00, 0xB0);             // ‘ –ÌΩ” ’ πƒ‹
+        spiWriteReg(52, 0x00, 0x80);            // Ê∏ÖÊé•Êî∂ÁºìÂ≠òÂå∫
+        spiWriteReg(7, 0x00, 0xB0);             // ÂÖÅËÆ∏Êé•Êî∂‰ΩøËÉΩ
         delayMs(50);
         LEDF = 0;
         for (;;)
@@ -130,8 +130,8 @@ void FunProofreadingFrequency(void)//∂‘∆µ
                         break;
                     }
                 }
-                spiWriteReg(52, 0x80, 0x80);            // «ÂΩ” ’ª∫¥Ê«¯
-                spiWriteReg(7, 0x00, 0xB0);             // ‘ –ÌΩ” ’ πƒ‹
+                spiWriteReg(52, 0x80, 0x80);            // Ê∏ÖÊé•Êî∂ÁºìÂ≠òÂå∫
+                spiWriteReg(7, 0x00, 0xB0);             // ÂÖÅËÆ∏Êé•Êî∂‰ΩøËÉΩ
             }
             delayMs(2);
         }
@@ -143,24 +143,24 @@ void RfSend(u8 Data)
     static unsigned char lastdata = 0;
 //SendUart(Data);
     spiWriteReg(7, 0x00, 0x30);             // 2402 + 48 = 2.45GHz
-    spiWriteReg(52, 0x80, 0x00);            // «Âø’∑¢ÀÕª∫¥Ê«¯
-    // ∑¢ÀÕ1∏ˆ◊÷Ω⁄
+    spiWriteReg(52, 0x80, 0x00);            // Ê∏ÖÁ©∫ÂèëÈÄÅÁºìÂ≠òÂå∫
+    // ÂèëÈÄÅ1‰∏™Â≠óËäÇ
     spiWriteReg(50, 3, i++ );
     spiWriteReg(50, lastdata, Data );
-    spiWriteReg(7, 0x01, 0x30);             // ‘ –Ì∑¢…‰ πƒ‹
+    spiWriteReg(7, 0x01, 0x30);             // ÂÖÅËÆ∏ÂèëÂ∞Ñ‰ΩøËÉΩ
     lastdata = Data;
 }
 #define SLEEPCOUNT 700
 
-void Timer0InitS(void)		//1∫¡√Î@12.000MHz
+void Timer0InitS(void)      //1ÊØ´Áßí@12.000MHz
 {
-	AUXR |= 0x80;		//∂® ±∆˜ ±÷”1Tƒ£ Ω
-	TMOD &= 0xF0;		//…Ë÷√∂® ±∆˜ƒ£ Ω
-	TL0 = 0x20;		//…Ë÷√∂® ±≥ı÷µ
-	TH0 = 0xD1;		//…Ë÷√∂® ±≥ı÷µ
-    TF0 = 0;        //«Â≥˝TF0±Í÷æ
-    TR0 = 1;        //∂® ±∆˜0ø™ ºº∆ ±
-    ET0 = 1;        // πƒ‹∂® ±∆˜0÷–∂œ
+    AUXR |= 0x80;       //ÂÆöÊó∂Âô®Êó∂Èíü1TÊ®°Âºè
+    TMOD &= 0xF0;       //ËÆæÁΩÆÂÆöÊó∂Âô®Ê®°Âºè
+    TL0 = 0x20;     //ËÆæÁΩÆÂÆöÊó∂ÂàùÂÄº
+    TH0 = 0xD1;     //ËÆæÁΩÆÂÆöÊó∂ÂàùÂÄº
+    TF0 = 0;        //Ê∏ÖÈô§TF0Ê†áÂøó
+    TR0 = 1;        //ÂÆöÊó∂Âô®0ÂºÄÂßãËÆ°Êó∂
+    ET0 = 1;        //‰ΩøËÉΩÂÆöÊó∂Âô®0‰∏≠Êñ≠
     EA = 1;
 }
 #define CCP_S0 0x10
@@ -229,20 +229,22 @@ void main(void)
     EA = 1;
     while (1)
     {
-//        if ((SleepSave & 0x01) == 0x01)//ƒ£ƒ‚–›√ﬂ
-//        {
-//            if (fTimer10ms == 1)
-//            {
-//                Key = KeyScan();
-//                if (0 != Key)
-//                {
-//                    SleepSave = 0;
-//                    LEDF = (SleepSave >> 7) & 0x01;
-//                    LED(SleepSave);
-//                }
-//            }
-//        }
-//        else
+#if 1==SOFTSLEEP
+        if ((SleepSave & 0x01) == 0x01)//Ê®°Êãü‰ºëÁú†
+        {
+            if (fTimer10ms == 1)
+            {
+                Key = KeyScan();
+                if (0 != Key)
+                {
+                    SleepSave = 0;
+                    LEDF = (SleepSave >> 7) & 0x01;
+                    LED(SleepSave);
+                }
+            }
+        }
+        else
+#endif
         {
             Key = KeyScan();
             if (fTimer10ms == 1)
@@ -270,11 +272,11 @@ void main(void)
                     if ((LastKeyNumber & (0x80 | RemoteControlSpeed)) == RemoteControlSpeed)
                     {
                         switch (++Speed)
-                        {   //µÕµÁ∆Ω¡¡
-                        case 4: Speed = 0; LED(SETLEDSPEEDL); break;//L¡¡
-                        case 1: LED(SETLEDSPEEDM); break;//M¡¡
-                        case 2: LED(SETLEDSPEEDH); break;//H¡¡
-                        case 3: LED(SETLEDSPEEDM); break;//M¡¡
+                        {   //‰ΩéÁîµÂπ≥‰∫Æ
+                        case 4: Speed = 0; LED(SETLEDSPEEDL); break;//L‰∫Æ
+                        case 1: LED(SETLEDSPEEDM); break;//M‰∫Æ
+                        case 2: LED(SETLEDSPEEDH); break;//H‰∫Æ
+                        case 3: LED(SETLEDSPEEDM); break;//M‰∫Æ
                         default: Speed = 0; break;
                         }
                     }
@@ -293,10 +295,10 @@ void main(void)
                         SleepSave = (SleepSave << 4);
                         LEDF = 1;
                         LED(SETLEDOFF);
-#if 0
+#if 1==SOFTSLEEP
                         SleepSave |= 0x01;
 #else
-                        PCON = 0x02;//–›√ﬂ
+                        PCON = 0x02;//‰ºëÁú†
                         _nop_();
                         _nop_();
                         _nop_();
@@ -324,7 +326,7 @@ void pca_isr() interrupt 7
 {
 }
 
-#define MS_COUNT 1//20
+#define MS_COUNT 20//20
 void tm2_isr() interrupt 12
 {
 }
