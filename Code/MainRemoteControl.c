@@ -1,3 +1,9 @@
+//单片机工作电流 9.28ma
+//无线  工作电流 1.46ma
+//单片机休眠电流 0.2ua
+//无线  休眠电流 66.5ua
+
+
 #include "user.h"
 #include "STC15W401.h"
 #include "spi.h"
@@ -62,9 +68,9 @@ void InitLT8900(void)
                            };
     char i;
     RESET_N = 0;
-    delayMs(100);
+    delayMs(10);
     RESET_N = 1;
-    delayMs(200);
+    delayMs(10);
     SCLK = 0;
     for (i = 0; i < 34; i++)spiWriteReg(EepromTmp[i], EepromTmp[i + i + 34], EepromTmp[i + i + 34 + 1]);
 }
@@ -287,6 +293,12 @@ void main(void)
                 {
                     if (SleepCount++ > SLEEPCOUNT)
                     {
+											  RESET_N = 0;
+											SS=0;
+											SCLK=0;
+											MOSI=0;
+											MISO=0;
+											
                         SleepCount = 0;
                         SleepSave = (SleepSave << 1) | LEDF;
                         SleepSave = (SleepSave << 1) | LEDH;
@@ -305,6 +317,9 @@ void main(void)
                         _nop_();
                         LEDF = (SleepSave >> 7) & 0x01;
                         LED(SleepSave);
+											    InitLT8900();
+    EEPROM_read_n(0x0000, AddressFrequency, 5);
+    SetLT9010Address();
 #endif
                     }
                 }
