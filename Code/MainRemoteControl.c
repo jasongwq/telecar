@@ -1,7 +1,7 @@
 //单片机工作电流 9.28ma
 //无线  工作电流 1.46ma
 //单片机休眠电流 0.2ua
-//无线  休眠电流 66.5ua
+//无线  休眠电流 1.0ua
 
 
 #include "user.h"
@@ -293,12 +293,11 @@ void main(void)
                 {
                     if (SleepCount++ > SLEEPCOUNT)
                     {
-											  RESET_N = 0;
-											SS=0;
-											SCLK=0;
-											MOSI=0;
-											MISO=0;
-											
+                        spiWriteReg(35, 0x83, 0x00);
+                        SCLK=0;
+                        MOSI=0;
+                        MISO=0;
+                        SS=1;
                         SleepCount = 0;
                         SleepSave = (SleepSave << 1) | LEDF;
                         SleepSave = (SleepSave << 1) | LEDH;
@@ -310,6 +309,7 @@ void main(void)
 #if 1==SOFTSLEEP
                         SleepSave |= 0x01;
 #else
+
                         PCON = 0x02;//休眠
                         _nop_();
                         _nop_();
