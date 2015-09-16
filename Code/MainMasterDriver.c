@@ -15,6 +15,12 @@
 #define ID_ADDR_RAM 0xF1
 #define PWMSETATOMIC(x) do{EA = 0;STRPWM.pwm0 = (x); CCAP0H = STRPWM.pwm0; EA = 1;}while(0);
 
+#define BEGIN_Dutyfactor (36 )//起始脉宽 1.2s/8.2s*256
+#define RUN_L_Dutyfactor (69 )//低速脉宽 2.2s
+#define RUN_M_Dutyfactor (100)//中速脉宽 3.2s
+#define RUN_H_Dutyfactor (255)//高速脉宽 高
+#define BACK_Dutyfactor  (81 )//倒退脉宽 2.6s/8.2s*256
+
 struct {
 	volatile double PwmStep;
 	volatile double pwm0;
@@ -71,28 +77,36 @@ void InitLT8900(void)
 void tm0_isr() interrupt 1 using 1
 {
 	EA = 0;
-	if(++i2>30)
+	if (++i2 > 30)
 	{
 		i2 = 0;
-	fTimer1ms = 1;
-	if (bRight)
-		if (Control.RDirectionCount > -1200) {Control.LDirectionCount = 0; Control.RDirectionCount--; OutR = 1;}
-		else bRight = 0;
-	else OutR = 0;
-	if (bLeft)
-		if (Control.LDirectionCount <  1200) {Control.RDirectionCount = 0; Control.LDirectionCount++; OutL = 1;}
-		else bLeft = 0;
-	else OutL = 0;
-	UpdateTimers();
+		fTimer1ms = 1;
+		if (bRight)
+			if (Control.RDirectionCount > -1200) {Control.LDirectionCount = 0; Control.RDirectionCount--; OutR = 1;}
+			else bRight = 0;
+		else OutR = 0;
+		if (bLeft)
+			if (Control.LDirectionCount <  1200) {Control.RDirectionCount = 0; Control.LDirectionCount++; OutL = 1;}
+			else bLeft = 0;
+		else OutL = 0;
+		UpdateTimers();
 	}
-	if (++i1 > 311)
+	if (++i1 > 311)//PWM
 	{
 		i1 = 0;
 		if (STRPWM.PwmTime > 1)
 		{
-			//SendUart(STRPWM.pwm0);
 			STRPWM.PwmTime--;
 			STRPWM.pwm0 += STRPWM.PwmStep;
+			if ((STRPWM.pwm0 > BEGIN_Dutyfactor) && (STRPWM.pwm0 < RUN_L_Dutyfactor))//加快低速时的加速速度
+			{
+				int i;
+				for (i = 0; i < 2, STRPWM.PwmTime>1, STRPWM.PwmStep > 0; ++i) //为原来的三倍
+				{
+					STRPWM.PwmTime--;
+					STRPWM.pwm0 += STRPWM.PwmStep;
+				}
+			}
 			CCAP0H = STRPWM.pwm0;
 		}
 		else if (STRPWM.PwmTime == 1)
@@ -102,20 +116,25 @@ void tm0_isr() interrupt 1 using 1
 			CCAP0H = STRPWM.pwm0;
 		}
 	}
-	
+
 	EA = 1;
 }
 
+/**
+ * [PwmCurve pwm曲线加速]
+ * @param time             [调节所用时间]
+ * @param TargetDutyfactor [目标占空比]
+ */
 void PwmCurve(u16 time, u8 TargetDutyfactor)
 {
-	s16 Dvalue;
+	s16 Dvalue;//差值
 	Control.Runing = 1;
-	STRPWM.TargetDutyfactor = TargetDutyfactor;
+	STRPWM.TargetDutyfactor = TargetDutyfactor;//目标占空比
 	EA      = 0;
-	if (STRPWM.pwm0 < 36)STRPWM.pwm0 = 36;
+	if (STRPWM.pwm0 < BEGIN_Dutyfactor)STRPWM.pwm0 = BEGIN_Dutyfactor;//起始脉宽
 	Dvalue  = TargetDutyfactor - STRPWM.pwm0;
-	STRPWM.PwmStep = (TargetDutyfactor - 36) / (double)time;
-	STRPWM.PwmTime = Dvalue / STRPWM.PwmStep;
+	STRPWM.PwmStep = (TargetDutyfactor - BEGIN_Dutyfactor) / (double)time;//单位时间步长
+	STRPWM.PwmTime = Dvalue / STRPWM.PwmStep;//调节次数
 	if (Dvalue < 0)STRPWM.PwmStep = -STRPWM.PwmStep;
 	EA = 1;
 }
@@ -129,17 +148,16 @@ char TaskControl(void)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
-			EA = 0; bLeft = 1;bRight = 0; EA = 1;
+			EA = 0; bLeft = 1; bRight = 0; EA = 1;
 		}
 		else if ((Control.ControlCommand & MaskRight) == Right)
 		{
 			Control.Turning = 1;
 			Control.ControlCommand &= 0xe7;
-			EA = 0; bLeft = 0;bRight = 1; EA = 1;
+			EA = 0; bLeft = 0; bRight = 1; EA = 1;
 		}
 		if (Control.ControlCommand == Skid)
 		{	Control.ControlCommand = -1;
-			//PWMSETATOMIC(0)
 			OutF = 0; OutB = 0;
 		}
 		else if (Control.NoReceiving > CONTROL_NORECIVING_IDLE)
@@ -151,22 +169,21 @@ char TaskControl(void)
 		{	if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				//SendUart(1);
-				PwmCurve(100, 69);
+				PwmCurve(100, RUN_L_Dutyfactor);//一秒内1.2/8.2
 			}
 		}
 		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunM)
 		{	if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(200, 100); //PwmOut(2, 32 * 3);
+				PwmCurve(200, RUN_M_Dutyfactor); //PwmOut(2, 32 * 3);
 			}
 		}
 		else if ((Control.ControlCommand & MaskRemoteControlRunL) == RemoteControlRunH)
 		{	if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(300, 255); //PwmOut(3, 255);
+				PwmCurve(300, RUN_H_Dutyfactor); //PwmOut(3, 255);
 			}
 		}
 		else if ((Control.ControlCommand & MaskRemoteControlBack) == RemoteControlBack)
@@ -174,7 +191,7 @@ char TaskControl(void)
 			if (0 == OutF) {
 				Control.ControlCommand = -1;
 				OutF = 0; OutB = 1;
-				PwmCurve(200, 81);//PwmOut(2, 26 * 3);
+				PwmCurve(200, BACK_Dutyfactor);//PwmOut(2, 26 * 3);
 			}
 		}
 		else if (Control.ControlCommand == ManualControlRunM)
@@ -182,7 +199,7 @@ char TaskControl(void)
 			if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(300, 100);//PwmOut(3, 32 * 3);
+				PwmCurve(300, RUN_M_Dutyfactor);//PwmOut(3, 32 * 3);
 			}
 		}
 		else if (Control.ControlCommand == ManualControlRunH)
@@ -190,7 +207,7 @@ char TaskControl(void)
 			if (0 == OutB) {
 				Control.ControlCommand &= 0xb8;
 				OutB = 0; OutF = 1;
-				PwmCurve(500, 255); //PwmOut(5, 255);
+				PwmCurve(500, RUN_H_Dutyfactor); //PwmOut(5, 255);
 			}
 		}
 		else if (Control.ControlCommand == ManualControlBack)
@@ -198,7 +215,7 @@ char TaskControl(void)
 			if (0 == OutF) {
 				Control.ControlCommand = -1;
 				OutF = 0; OutB = 1;
-				PwmCurve(300, 78);//PwmOut(3, 26 * 3);
+				PwmCurve(300, BACK_Dutyfactor);//PwmOut(3, 26 * 3);
 			}
 		}
 		if (Control.Turning)
@@ -326,11 +343,6 @@ int TaskRf(void)
 								Control.Speed = (Data & 0x03);
 						}
 					}
-//					SendUart(Control.ControlCommand);
-//					SendUart(Control.ControlCommand);
-//					SendUart(Control.ControlCommand);
-					
-					
 				}
 			}
 			spiWriteReg(7, 0x00, 0x30);
@@ -357,20 +369,11 @@ void main(void)
 
 	PCA_config(); //PWM
 	Timer0Init(); //定时器（1ms 时间基数）
-	//CCAP0H = 0xff;
-	// for (i = 0; i < 200; i++)AAAAAAAAAAAAAAA
-	// {
-	// 	PWMSETATOMIC(it++);
-	// 	delayMs(20);
-	// }
 	delayMs(500);
 	PWMSETATOMIC(0);
 
 	P_SW1 |= 0x80; //P_SW1 0x80 USART RE RX P1.6 TX P1.7
-//	UartInit();
-//	for (i = 0; i < 7; i++)SendUart(*pIdRam++);
 	pIdRam = ID_ADDR_RAM;
-	//Timer2Init();
 
 	INMF = 1;
 	INMB = 1;
