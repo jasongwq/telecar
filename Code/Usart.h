@@ -2,7 +2,7 @@
 #define _USART_H
 
 
-#define BAUD            (65536 - MCU_FREQ / 4 / 115200)
+#define BAUD            (65536 - MCU_FREQ / 4 / 9600)
 
 void UartInit(void)
 {

@@ -4,7 +4,7 @@
 #include <intrins.h>
 #include "delay.h"
 #include "lt8910.h"
-//#include "usart.h"
+#include "usart.h"
 #include "sys_os.h"
 #include "pca.h"
 
@@ -269,6 +269,16 @@ int TaskControl2(void)//stops slowly
 	_EE
 }
 #define FIFONUM 4
+
+char comp(int id)
+{
+	if (*(pIdRam + 5) != ((id >> 8) & 0xff))
+		return 0;
+	if (*(pIdRam + 6) != ((id >> 0) & 0xff))
+		return 0;
+	return 1;
+}
+
 int TaskRf(void)
 {	static u8 RfFifo[FIFONUM];
 	_SS
@@ -278,20 +288,55 @@ int TaskRf(void)
 	spiWriteReg(52, 0x00, 0x80);
 	spiWriteReg(7, 0x00, 0xB0);
 	delayMs(5);
-	for (i = 0; i < 10; i++)//Calibration address code
+	for (i = 0; i < 50; i++)//Calibration address code
 	{
 		spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
 		spiWriteReg(52, 0x80, 0x00);
 
 		spiWriteReg(50, 5, *(pIdRam + 6));
-		spiWriteReg(50, *(pIdRam + 0), *(pIdRam + 1));
-		spiWriteReg(50, *(pIdRam + 2), *(pIdRam + 3));
+		spiWriteReg(50, *(pIdRam + 1), *(pIdRam + 2));
+		spiWriteReg(50, *(pIdRam + 3), *(pIdRam + 5));
 		spiWriteReg(7, 0x01, 0x30);
 		WaitX(20);
 	}
+	while (1)
+	{
+		WaitX(100);
+		if (comp(0x7727))
+		{
+			SendUart(0x1);
+			break;
+		}
+		if (comp(0x6302))
+		{
+			SendUart(0x2);
+			break;
+		}
+		if (comp(0x4E1D))
+		{
+			SendUart(0x3);
+			break;
+		}
+		if (comp(0x62A4))
+		{
+			SendUart(0x4);
+			break;
+		}
+		if (comp(0x4E1F))
+		{
+			SendUart(0x5);
+			break;
+		}
+		if (comp(0x76C9))
+		{
+			SendUart(0x6);
+			break;
+		}
+	}
+	SendUart(0x10);
 
-	spiWriteReg(36, *(pIdRam + 0), *(pIdRam + 1));//Modify the address code
-	spiWriteReg(38, *(pIdRam + 2), *(pIdRam + 3));
+	spiWriteReg(36, *(pIdRam + 1), *(pIdRam + 2));//Modify the address code
+	spiWriteReg(38, *(pIdRam + 3), *(pIdRam + 5));
 	spiWriteReg(39, 0xbd, *(pIdRam + 6));
 	spiWriteReg(52, 0x00, 0x80);
 	spiWriteReg(7, 0x00, 0xB0);
@@ -366,7 +411,7 @@ void main(void)
 	OutL = 0;
 	OutF = 0;
 	OutB = 0;
-
+	UartInit();
 	PCA_config(); //PWM
 	Timer0Init(); //定时器（1ms 时间基数）
 	delayMs(500);
