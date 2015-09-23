@@ -15,11 +15,11 @@
 #define ID_ADDR_RAM 0xF1
 #define PWMSETATOMIC(x) do{EA = 0;STRPWM.pwm0 = (x); CCAP0H = STRPWM.pwm0; EA = 1;}while(0);
 
-#define BEGIN_Dutyfactor (36 )//起始脉宽 1.2s/8.2s*256
-#define RUN_L_Dutyfactor (69 )//低速脉宽 2.2s
-#define RUN_M_Dutyfactor (100)//中速脉宽 3.2s
+#define BEGIN_Dutyfactor (46 )//起始脉宽 1.2s/8.2s*256
+#define RUN_L_Dutyfactor (78 )//低速脉宽 2.2s
+#define RUN_M_Dutyfactor (109)//中速脉宽 3.2s
 #define RUN_H_Dutyfactor (255)//高速脉宽 高
-#define BACK_Dutyfactor  (81 )//倒退脉宽 2.6s/8.2s*256
+#define BACK_Dutyfactor  (87 )//倒退脉宽 2.6s/8.2s*256
 
 struct {
 	volatile double PwmStep;
