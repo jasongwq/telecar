@@ -141,7 +141,11 @@ void FunProofreadingFrequency(void)//对频
                 spiWriteReg(7, 0x00, 0xB0);             // 允许接收使能
             }
             delayMs(2);
-            if (++ProofreadingFrequencyTime > 2000)
+            if(0x82==KeyScan())//再次按对频退出对频功能
+            {
+            	break;
+            }
+            if (++ProofreadingFrequencyTime > 2000)//如果4秒钟对频不成功 重新初始化无线
             {
                 ProofreadingFrequencyTime = 0;
                 InitLT8900();

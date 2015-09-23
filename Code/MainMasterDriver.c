@@ -98,13 +98,16 @@ void tm0_isr() interrupt 1 using 1
 		{
 			STRPWM.PwmTime--;
 			STRPWM.pwm0 += STRPWM.PwmStep;
-			if ((STRPWM.pwm0 > BEGIN_Dutyfactor) && (STRPWM.pwm0 < RUN_L_Dutyfactor))//加快低速时的加速速度
+			if ((STRPWM.pwm0 > BEGIN_Dutyfactor) && (STRPWM.pwm0 < RUN_L_Dutyfactor) && (STRPWM.PwmStep > 0)) //加快低速时的加速速度
 			{
 				int i;
-				for (i = 0; i < 2, STRPWM.PwmTime>1, STRPWM.PwmStep > 0; ++i) //为原来的三倍
+				for (i = 0; i < 2; ++i) //为原来的三倍
 				{
-					STRPWM.PwmTime--;
-					STRPWM.pwm0 += STRPWM.PwmStep;
+					if (STRPWM.PwmTime > 1)
+					{
+						STRPWM.PwmTime--;
+						STRPWM.pwm0 += STRPWM.PwmStep;
+					}
 				}
 			}
 			CCAP0H = STRPWM.pwm0;
@@ -160,7 +163,7 @@ char TaskControl(void)
 		{	Control.ControlCommand = -1;
 			OutF = 0; OutB = 0;
 		}
-		else if (Control.NoReceiving > CONTROL_NORECIVING_IDLE)
+		else if (Control.NoReceiving >= CONTROL_NORECIVING_IDLE)//只有在空闲状态才能启动手动控制
 		{
 			if (0 == INMF) {Control.ControlCommand = ManualControlRun | Control.Speed;}
 			else if (0 == INMB) {Control.ControlCommand = ManualControlBack;}
@@ -288,7 +291,7 @@ int TaskRf(void)
 	spiWriteReg(52, 0x00, 0x80);
 	spiWriteReg(7, 0x00, 0xB0);
 	delayMs(5);
-	for (i = 0; i < 50; i++)//Calibration address code
+	for (i = 0; i < 20; i++)//Calibration address code
 	{
 		spiWriteReg(7, 0x00, 0x00);             // 2402 + 48 = 2.45GHz
 		spiWriteReg(52, 0x80, 0x00);
@@ -333,7 +336,7 @@ int TaskRf(void)
 			break;
 		}
 	}
-	SendUart(0x10);
+//	SendUart(0x10);
 
 	spiWriteReg(36, *(pIdRam + 1), *(pIdRam + 2));//Modify the address code
 	spiWriteReg(38, *(pIdRam + 3), *(pIdRam + 5));
@@ -344,6 +347,7 @@ int TaskRf(void)
 	while (1)
 	{
 		static unsigned char lasti;
+		u8 ReceivedOKFlag = 0;
 		u8 Data;
 		u8 SerialNumber;
 		WaitX(2);
@@ -357,6 +361,7 @@ int TaskRf(void)
 				spiReadreg(50); RfFifo[0] = RegH; RfFifo[1] = RegL;//Read the data
 				if ((FIFONUM - 1) == RfFifo[0])//Check the FIFO size
 				{
+					ReceivedOKFlag = 1;
 					spiReadreg(50); RfFifo[2]  = RegH; RfFifo[3] = RegL;//Read the data
 					SerialNumber = (u8)((u8)RfFifo[1] - (u8)lasti) > 10 ? (lasti - RfFifo[1]) : (RfFifo[1] - lasti);//Check the serial number
 					if (1 == SerialNumber)
@@ -394,10 +399,18 @@ int TaskRf(void)
 			spiWriteReg(52, 0x80, 0x80);
 			spiWriteReg(7, 0x00, 0xB0);
 		}
-		else if (Control.NoReceiving <= CONTROL_NORECIVING_IDLE)
+		if (0 == ReceivedOKFlag)
 		{
-			Control.NoReceiving++;
+			if (Control.NoReceiving <= CONTROL_NORECIVING_IDLE)
+			{
+				++Control.NoReceiving;
+			}
 		}
+		else
+		{
+			Control.NoReceiving = 0;
+		}
+
 	}
 	_EE
 }
